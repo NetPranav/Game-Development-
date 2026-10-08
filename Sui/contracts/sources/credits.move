@@ -1,5 +1,4 @@
-/// CREDITS reward currency. Lives in its own module because `create_currency` needs a
-/// one-time witness named after the module.
+/// CREDITS reward currency for Robot Rumble.
 module robot_rumble::credits;
 
 use sui::coin::{Self, Coin, TreasuryCap};
@@ -12,6 +11,7 @@ public struct Vault has key {
     treasury: TreasuryCap<CREDITS>,
 }
 
+#[allow(deprecated_usage)]
 fun init(otw: CREDITS, ctx: &mut TxContext) {
     let (treasury, metadata) = coin::create_currency(
         otw,
@@ -32,4 +32,9 @@ public(package) fun mint(vault: &mut Vault, amount: u64, ctx: &mut TxContext): C
 
 public(package) fun burn(vault: &mut Vault, c: Coin<CREDITS>): u64 {
     coin::burn(&mut vault.treasury, c)
+}
+
+#[test_only]
+public fun init_for_testing(ctx: &mut TxContext) {
+    init(CREDITS {}, ctx);
 }

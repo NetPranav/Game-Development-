@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robot Rumble — Sui Blockchain Test Harness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111726;
+      --card-border: #1e293b;
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.25);
+      --amber: #f59e0b;
+      --purple: #8b5cf6;
+      --green: #10b981;
+      --red: #ef4444;
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 28px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 20px;
+      color: #000;
+    }
+    .brand h1 {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 24px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .brand p {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .net-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--green);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .net-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--green);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--cyan);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .input-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 8px;
+      font-family: 'Chakra Petch', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+    }
+    .btn-primary {
+      background: var(--cyan);
+      color: #000;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 20px var(--cyan-glow);
+      filter: brightness(1.1);
+    }
+    .btn-amber {
+      background: var(--amber);
+      color: #000;
+    }
+    .btn-amber:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+    }
+    .btn-outline:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .btn-sm {
+      padding: 8px 12px;
+      font-size: 12px;
+      width: auto;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      background: #090e1a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .stat-val {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .gear-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .gear-card {
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .gear-card:hover {
+      border-color: var(--cyan);
+      transform: translateY(-2px);
+    }
+    .gear-kind {
+      display: inline-block;
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .kind-weapon { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .kind-armor { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .kind-ability { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .rarity-badge {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .rarity-Common { background: #334155; color: #cbd5e1; }
+    .rarity-Rare { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
+    .rarity-Epic { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #9333ea; }
+    .rarity-Legendary { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #d97706; }
+    .gear-name {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .gear-stats {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+      line-height: 1.6;
+    }
+    .gear-id {
+      font-family: monospace;
+      font-size: 11px;
+      color: #64748b;
+      word-break: break-all;
+      margin-bottom: 12px;
+    }
+    .tx-item {
+      background: #0a0f1d;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tx-digest {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    .tx-digest:hover { text-decoration: underline; }
+    .empty-state {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--text-dim);
+      font-size: 14px;
+      border: 1px dashed #1e293b;
+      border-radius: 12px;
+    }
+    #status-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      border: 1px solid var(--cyan);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: none;
+      z-index: 1000;
+      font-size: 13px;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">RR</div>
+      <div>
+        <h1>Robot Rumble</h1>
+        <p>Sui Blockchain Test Harness & Inspector</p>
+      </div>
+    </div>
+    <div class="net-badge">
+      <span class="net-dot"></span>
+      <span id="net-label">Sui Testnet</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT PANEL: WALLET & ACTIONS -->
+    <div>
+      <!-- WALLET CONNECTION -->
+      <div class="card">
+        <div class="card-title">
+          <span>1. Player Wallet</span>
+          <button class="btn btn-outline btn-sm" id="btn-detect-wallets">Detect</button>
+        </div>
+        <div id="wallet-list" style="margin-bottom: 12px;"></div>
+        <div class="input-group">
+          <label>Wallet / Test Address</label>
+          <input type="text" id="wallet-input" placeholder="0x... (e.g. connected Sui address)">
+        </div>
+        <button class="btn btn-primary" id="btn-set-wallet">Set Active Wallet</button>
+      </div>
+
+      <!-- PLAYER PROFILE -->
+      <div class="card">
+        <div class="card-title">
+          <span>2. Player Profile</span>
+          <span id="profile-badge" style="font-size: 11px; color: var(--text-dim);">Unloaded</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Level</div>
+            <div class="stat-val" id="prof-level">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">XP</div>
+            <div class="stat-val" id="prof-xp">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Victories</div>
+            <div class="stat-val" style="color: var(--green);" id="prof-wins">-</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Battles</div>
+            <div class="stat-val" id="prof-battles">-</div>
+          </div>
+        </div>
+        <button class="btn btn-outline" id="btn-create-profile" style="margin-top: 4px;">Initialize Profile</button>
+      </div>
+
+      <!-- SIMULATE VICTORY -->
+      <div class="card">
+        <div class="card-title">
+          <span>3. Simulate Combat Victory</span>
+        </div>
+        <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 14px;">
+          Simulates winning an arena combat match with 3 enemy robot kills. Authorized backend executes on-chain VRF minting.
+        </p>
+        <button class="btn btn-amber" id="btn-sim-victory">
+          ⚔️ Simulate Match Victory (+50 RRC)
+        </button>
+      </div>
+
+      <!-- TOKEN BALANCE -->
+      <div class="card">
+        <div class="card-title">
+          <span>4. Token Balance</span>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-balance">Refresh</button>
+        </div>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Robot Credits (RRC)</div>
+            <div class="stat-val" style="color: var(--amber);" id="bal-credits">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Gas (SUI)</div>
+            <div class="stat-val" style="color: var(--cyan);" id="bal-sui">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: GEAR INVENTORY & TRANSACTIONS -->
+    <div>
+      <div class="card">
+        <div class="card-title">
+          <span>On-Chain Gear Inventory (Owned NFTs)</span>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-gear">🔄 Refresh Ledger</button>
+        </div>
+        <div id="gear-container" class="gear-grid">
+          <div class="empty-state">No player wallet connected. Set an address to inspect owned gear objects.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Live Blockchain Transaction Log</span>
+          <button class="btn btn-outline btn-sm" id="btn-clear-txs">Clear</button>
+        </div>
+        <div id="tx-log">
+          <div class="empty-state" style="padding: 16px;">No transactions submitted yet in this session.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status-toast"></div>
+
+  <script type="module">
+    import { getWallets } from 'https://esm.sh/@wallet-standard/app@1';
+
+    const EXPLORER_URL = 'https://suiscan.xyz/testnet/tx/';
+    let currentAddress = localStorage.getItem('rr_active_wallet') || '';
+
+    const walletInput = document.getElementById('wallet-input');
+    const toast = document.getElementById('status-toast');
+    const gearContainer = document.getElementById('gear-container');
+    const txLog = document.getElementById('tx-log');
+
+    if (currentAddress) {
+      walletInput.value = currentAddress;
+    }
+
+    function showToast(msg, isError = false) {
+      toast.textContent = msg;
+      toast.style.borderColor = isError ? 'var(--red)' : 'var(--cyan)';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 5000);
+    }
+
+    function addTxLog(title, digest, url) {
+      const empty = txLog.querySelector('.empty-state');
+      if (empty) empty.remove();
+
+      const div = document.createElement('div');
+      div.className = 'tx-item';
+      div.innerHTML = `
+        <div>
+          <strong>${title}</strong>
+          <div style="font-size: 11px; color: #64748b;">${new Date().toLocaleTimeString()}</div>
+        </div>
+        <a class="tx-digest" href="${url || EXPLORER_URL + digest}" target="_blank">
+          ${digest.slice(0, 10)}...${digest.slice(-8)} ↗
+        </a>
+      `;
+      txLog.prepend(div);
+    }
+
+    async function setWallet(addr) {
+      if (!addr || !addr.startsWith('0x')) {
+        showToast('Please enter a valid Sui address (0x...)', true);
+        return;
+      }
+      currentAddress = addr;
+      localStorage.setItem('rr_active_wallet', addr);
+      showToast('Active wallet set: ' + addr.slice(0, 8) + '...');
+      await fetch('/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: addr })
+      });
+      refreshAll();
+    }
+
+    async function refreshAll() {
+      if (!currentAddress) return;
+      await Promise.all([refreshGear(), refreshBalance()]);
+    }
+
+    async function refreshBalance() {
+      if (!currentAddress) return;
+      try {
+        const res = await fetch(`/balance/${currentAddress}`);
+        const data = await res.json();
+        if (data.ok) {
+          document.getElementById('bal-credits').textContent = data.credits ?? 0;
+          document.getElementById('bal-sui').textContent = (Number(data.sui || 0) / 1e9).toFixed(3);
+        }
+      } catch (e) {
+        console.error('Balance error', e);
+      }
+    }
+
+    async function refreshGear() {
+      if (!currentAddress) return;
+      gearContainer.innerHTML = '<div class="empty-state">Loading on-chain ledger objects...</div>';
+      try {
+        const res = await fetch(`/gear/${currentAddress}`);
+        const data = await res.json();
+        
+        if (data.profile) {
+          document.getElementById('profile-badge').textContent = 'Profile Active';
+          document.getElementById('profile-badge').style.color = 'var(--green)';
+          document.getElementById('prof-level').textContent = data.profile.level || 1;
+          document.getElementById('prof-xp').textContent = data.profile.xp || 0;
+          document.getElementById('prof-wins').textContent = data.profile.wins || 0;
+          document.getElementById('prof-battles').textContent = data.profile.battlesPlayed || 0;
+        } else {
+          document.getElementById('profile-badge').textContent = 'No Profile';
+        }
+
+        document.getElementById('bal-credits').textContent = data.credits ?? 0;
+
+        const gearList = data.gear || [];
+        if (gearList.length === 0) {
+          gearContainer.innerHTML = '<div class="empty-state">No Gear NFTs found for this address. Click "Simulate Match Victory" to earn gear!</div>';
+          return;
+        }
+
+        gearContainer.innerHTML = '';
+        gearList.forEach(g => {
+          const card = document.createElement('div');
+          card.className = 'gear-card';
+          
+          let statText = '';
+          if (g.kind === 'weapon') statText = `⚔️ Damage: <strong>${g.damage}</strong>`;
+          else if (g.kind === 'armor') statText = `🛡️ Armor: <strong>${g.armor}</strong>`;
+          else statText = `⚡ Power: <strong>${g.power}</strong>`;
+
+          const canUpgrade = g.kind === 'weapon';
+          const upgradeCost = g.level * 10;
+
+          card.innerHTML = `
+            <span class="gear-kind kind-${g.kind}">${g.kind}</span>
+            <span class="rarity-badge rarity-${g.rarity || 'Common'}">${g.rarity || 'Common'}</span>
+            <div class="gear-name">${g.name}</div>
+            <div class="gear-id">ID: ${g.id.slice(0, 10)}...${g.id.slice(-8)}</div>
+            <div class="gear-stats">
+              <div>Level: <strong>${g.level}</strong> &bull; Wins: <strong>${g.wins || 0}</strong></div>
+              <div>${statText}</div>
+              <div>Durability: <strong>${g.durability || 100}/100</strong></div>
+            </div>
+            ${canUpgrade ? `
+              <button class="btn btn-outline btn-sm upgrade-btn" data-id="${g.id}" data-level="${g.level}">
+                Upgrade (+8 DMG / -${upgradeCost} RRC)
+              </button>
+            ` : ''}
+          `;
+          gearContainer.appendChild(card);
+        });
+
+        // Attach upgrade listeners
+        document.querySelectorAll('.upgrade-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const gearId = btn.getAttribute('data-id');
+            await upgradeWeapon(gearId);
+          });
+        });
+
+      } catch (e) {
+        gearContainer.innerHTML = `<div class="empty-state" style="color:var(--red);">Error loading gear: ${e.message}</div>`;
+      }
+    }
+
+    async function simulateVictory() {
+      if (!currentAddress) {
+        showToast('Please set your player wallet first', true);
+        return;
+      }
+      showToast('Simulating match victory & executing on-chain reward...');
+      const btn = document.getElementById('btn-sim-victory');
+      btn.disabled = true;
+      btn.textContent = '⏳ Minting on Sui Testnet...';
+      try {
+        const res = await fetch('/reward', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: currentAddress, won: true, enemiesKilled: 3 })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(`Match Victory Reward Mined! +${data.creditsAdded} RRC`);
+          addTxLog('Battle Reward (+50 RRC & Gear NFT)', data.digest, data.url);
+          await refreshAll();
+        } else {
+          showToast('Reward failed: ' + (data.error || 'Unknown error'), true);
+        }
+      } catch (e) {
+        showToast('Error requesting reward: ' + e.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⚔️ Simulate Match Victory (+50 RRC)';
+      }
+    }
+
+    async function upgradeWeapon(gearId) {
+      showToast('Executing weapon upgrade transaction...');
+      try {
+        const res = await fetch('/upgrade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: currentAddress, weaponId: gearId })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(`Weapon Upgraded! Level ${data.newLevel}, Damage ${data.newDamage}`);
+          addTxLog(`Upgrade Weapon (${gearId.slice(0, 8)}...)`, data.digest, data.url);
+          await refreshAll();
+        } else {
+          showToast('Upgrade failed: ' + (data.error || 'Unknown error'), true);
+        }
+      } catch (e) {
+        showToast('Error upgrading weapon: ' + e.message, true);
+      }
+    }
+
+    async function createProfile() {
+      if (!currentAddress) {
+        showToast('Set wallet address first', true);
+        return;
+      }
+      showToast('Creating on-chain PlayerProfile...');
+      try {
+        const res = await fetch('/player/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: currentAddress })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast('PlayerProfile initialized!');
+          addTxLog('Create Player Profile', data.digest, data.url);
+          await refreshAll();
+        } else {
+          showToast('Profile init failed: ' + (data.error || 'Unknown error'), true);
+        }
+      } catch (e) {
+        showToast('Error: ' + e.message, true);
+      }
+    }
+
+    // Wallet Standard Detection
+    function detectWallets() {
+      const container = document.getElementById('wallet-list');
+      const ws = getWallets().get().filter(w => w.chains.some(c => c.startsWith('sui:')) && w.features['standard:connect']);
+      container.innerHTML = '';
+      if (!ws.length) {
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">No browser wallet extension detected (e.g. Slush, Sui Wallet). You can paste an address below.</div>';
+        return;
+      }
+      ws.forEach(w => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline btn-sm';
+        btn.style.marginBottom = '6px';
+        btn.textContent = `Connect ${w.name}`;
+        btn.onclick = async () => {
+          try {
+            const { accounts } = await w.features['standard:connect'].connect();
+            walletInput.value = accounts[0].address;
+            setWallet(accounts[0].address);
+          } catch (e) {
+            showToast(String(e), true);
+          }
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    document.getElementById('btn-set-wallet').addEventListener('click', () => setWallet(walletInput.value.trim()));
+    document.getElementById('btn-sim-victory').addEventListener('click', simulateVictory);
+    document.getElementById('btn-refresh-gear').addEventListener('click', refreshGear);
+    document.getElementById('btn-refresh-balance').addEventListener('click', refreshBalance);
+    document.getElementById('btn-create-profile').addEventListener('click', createProfile);
+    document.getElementById('btn-detect-wallets').addEventListener('click', detectWallets);
+    document.getElementById('btn-clear-txs').addEventListener('click', () => {
+      txLog.innerHTML = '<div class="empty-state" style="padding: 16px;">Log cleared.</div>';
+    });
+
+    detectWallets();
+    if (currentAddress) refreshAll();
+  </script>
+</body>
+</html>
