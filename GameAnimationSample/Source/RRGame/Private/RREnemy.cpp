@@ -4,6 +4,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
 #include "Animation/AnimInstance.h"
 #include "RREnemyAIController.h"
 #include "RREnemyDirector.h"
@@ -84,9 +85,47 @@ void ARREnemy::StopIntroMontage()
 	}
 }
 
+void ARREnemy::UpdateLocomotion()
+{
+	if (!IsAlive()) return;
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	UAnimInstance* Anim = MeshComp ? MeshComp->GetAnimInstance() : nullptr;
+	if (!Anim) return;
+
+	// something else (attack, hit reaction, stagger) owns the slot: do not fight it
+	UAnimMontage* Active = Anim->GetCurrentActiveMontage();
+	if (Active && Active != LocoMontage) return;
+
+	const FVector Vel = GetVelocity();
+	const float Speed = Vel.Size2D();
+	const FVector Local = GetActorTransform().InverseTransformVectorNoScale(Vel.GetSafeNormal2D());
+
+	const TCHAR* Name = TEXT("Idle");
+	if (Speed > 30.0f)
+	{
+		if (FMath::Abs(Local.X) >= FMath::Abs(Local.Y)) Name = Local.X >= 0.0f ? TEXT("Jog_Fwd") : TEXT("Jog_Bwd");
+		else Name = Local.Y >= 0.0f ? TEXT("Jog_Right") : TEXT("Jog_Left");
+	}
+
+	const FName Wanted(Name);
+	if (Wanted == LocoCurrent && Active == LocoMontage && LocoMontage) return;
+
+	const FString Path = FString::Printf(TEXT("/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/%s.%s"), Name, Name);
+	UAnimSequence* Seq = Cast<UAnimSequence>(StaticLoadObject(UAnimSequence::StaticClass(), nullptr, *Path));
+	if (!Seq) return;
+	LocoMontage = Anim->PlaySlotAnimationAsDynamicMontage(Seq, FName("DefaultSlot"), 0.2f, 0.25f, 1.0f, 1000);
+	LocoCurrent = Wanted;
+	if (LocoMontage && Speed > 30.0f)
+	{
+		Anim->Montage_SetPlayRate(LocoMontage, FMath::Clamp(Speed / 420.0f, 0.6f, 1.3f));
+	}
+}
+
 void ARREnemy::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GetWorldTimerManager().SetTimer(LocomotionTimer, this, &ARREnemy::UpdateLocomotion, 0.1f, true, 0.3f);
 
 	GetWorldTimerManager().SetTimer(IntroStopTimer, this, &ARREnemy::StopIntroMontage, 0.1f, true);
 

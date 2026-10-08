@@ -122,6 +122,13 @@ protected:
 	void OnDeath();
 
 	void StopIntroMontage();
+
+	/** The Paragon animation blueprint's locomotion state machine never leaves its start pose for AI-driven characters,
+	 *  so idle/jog loops are played through the DefaultSlot whenever no action montage (attack, hit reaction...) is active. */
+	void UpdateLocomotion();
+	FTimerHandle LocomotionTimer;
+	UPROPERTY(Transient) TObjectPtr<class UAnimMontage> LocoMontage;
+	FName LocoCurrent;
 	FTimerHandle IntroStopTimer;
 	int32 IntroStopTicks = 0;
 };
