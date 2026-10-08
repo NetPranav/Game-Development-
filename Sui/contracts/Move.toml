@@ -1,0 +1,6 @@
+[package]
+name = "robot_rumble"
+edition = "2024"
+
+[addresses]
+robot_rumble = "0x0"

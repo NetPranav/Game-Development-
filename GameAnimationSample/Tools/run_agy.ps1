@@ -1,0 +1,6 @@
+param([Parameter(Mandatory=$true)][string]$Id, [Parameter(Mandatory=$true)][string]$PromptFile)
+$ws = "A:\UNREAL PROJECT\Game\GameAnimationSample"
+$a = "$env:LOCALAPPDATA\agy\bin\agy.exe"
+$prompt = "You are executing prompt $Id and you are the one doing the work: do NOT delegate to subagents and NEVER call run_command or any shell tool, including for listing files (a denied shell call ends your whole session; commands containing a pipe are always denied). The list of existing source files is in Docs/reports/FILE_INDEX.md and the module dependency map is in Docs/reports/MODULE_DEPS.md: read those first, then open individual files with your file-view tool. Then read Docs/prompts/$PromptFile and Docs/prompts/00_RULES.md (including the section Lessons from the first real compile) and follow them exactly, writing the report file the prompt names. Verify engine APIs by viewing engine source files by path under A:/UNREAL/UE_5.8/Engine. Work autonomously to completion without waiting for anything."
+Start-Process -FilePath $a -ArgumentList @("-p", ('"' + $prompt + '"'), "--model", "gemini-3.1-pro-high", "--mode", "accept-edits", "--output-format", "stream-json") -WorkingDirectory $ws -RedirectStandardOutput "$ws\Docs\reports\$Id.out.log" -RedirectStandardError "$ws\Docs\reports\$Id.err.log" -WindowStyle Hidden
+"$Id launched"

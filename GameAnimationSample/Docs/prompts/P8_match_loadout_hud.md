@@ -1,0 +1,49 @@
+# P8 — Match flow (`ARRGameMode`), gear loadout (`URRLoadoutComponent`), canvas HUD (`ARRHUD`), Sui reward wiring
+PROMPT_ID = `P8`. Read `Docs/prompts/00_RULES.md` (**including "Lessons from the first real compile"**), `Docs/SPEC_SUI.md`, `Docs/PLAN.md`, then the reports `P1`, `P3`..`P7` in `Docs/reports/`. **No shell commands — built-in read/list/search/edit tools only.** All new code in module `RRGame`. Already available there: `URRSuiBridge` (HTTP to the Node sidecar; delegates `OnWalletConnected/OnGearFetched/OnRewardResult/OnBridgeError`; `FRRGearData`, `FRRRewardResult`), `URREnemyDirector` + `ARREnemy` (P7), the combat stack (P3–P6: `UAAACombatComponent`, `FAAACombatEvents`, `UAAAHitFeedbackSubsystem::DrawDamageNumbers`, lock-on in `AAAAAPlayerController`).
+
+## Ground truth (verified)
+- Existing game classes: `AAAAAGameModeBase` (`Source/AAAGame/Public/GameFramework/AAAAGameModeBase.h`, near-empty), `AAAAAHUD` (has `ToggleGameMenu`, `GameMenuClass`; P6 added `DrawHUD` damage-number hook), `AAAAAPlayerController`, `AAAAPlayerState`. `/Game/AAA/Gameplay/GameModes/BP_AAAGameMode` (Blueprint) currently sets pawn `BP_PlayerCharacter`, controller/HUD/state = the C++ AAA classes. The reviewer will later create `BP_RRGameMode` (child of `ARRGameMode`) and `BP_RRHUD` (child of `ARRHUD`) by Python — you create no assets. `ARRGameMode` must therefore set `PlayerControllerClass/HUDClass/PlayerStateClass/GameStateClass` in its **constructor** to the AAA/RR C++ classes, and expose `DefaultPawnClass` as editable so the BP can set `BP_PlayerCharacter`.
+- Player pawn: Mover `APawn` `BP_PlayerCharacter` with `UAAACombatComponent`, `UAAAAttributeComponent` (`OnDeath`, `OnHealthChanged(Health,MaxHealth,Prev)`), ASC on PlayerState.
+- No Blueprint/UMG may be required: the HUD draws with `AHUD::DrawText/DrawRect/DrawLine` / `Canvas` only. **Never allocate Slate brushes in HUD code** (see `Docs/after/BUGS.md` BUG-02).
+
+## Deliverables
+
+### 1. `URRLoadoutComponent : UActorComponent` (added at runtime to the player pawn by the game mode if missing)
+- Holds `FRRGearData Weapon, Armor, Ability` (+ `bHas*`). `Equip(const FRRGearData&)`, `Unequip(ERRGearKind)`, `GetEquipped(ERRGearKind, FRRGearData&)`, delegate `OnLoadoutChanged`.
+- Applies stats to the **real** combat stack on authority via the hooks P4 created: `UAAACombatComponent::SetLoadoutModifiers(DamageMult, DamageReduct)`: `DamageMult = 1 + Weapon.Damage/100 + Ability.Power/200`, `DamageReduct = Armor.Armor/(Armor.Armor+100)` (cap 0.6); also scale `MaxHealth` by `+Armor.Armor*0.5` through the attribute set (base value) keeping the current health fraction. A default **starter loadout** (Level-1 "Rustic Blade" damage 12, "Padded Frame" armor 8, no ability) is used when no wallet/gear is available so the game is playable offline.
+- Visual hook for later: broadcast `OnLoadoutChanged` and expose `int64 GetVisualSeed()` (weapon seed XOR armor seed). A later prompt (robot visuals) uses it.
+
+### 2. `ARRGameMode : AAAAAGameModeBase` (keep base behaviour)
+- `enum class ERRMatchState : uint8 { PreMatch, InProgress, Won, Lost }` with `GetMatchState()`, `OnMatchStateChanged(ERRMatchState)` (BlueprintAssignable), `GetMatchTimeSeconds()`, `GetEnemiesKilled()`, `GetEnemiesTotal()`.
+- Properties: `TSubclassOf<ARREnemy> EnemyClass`, `int32 EnemyCount=3`, `float SpawnRingRadius=1400`, `float PreMatchSeconds=3`, `int32 Waves=1` (support N waves of `EnemyCount + wave` each; keep the wave loop simple), `FVector ArenaCenterOverride`/`bUseArenaCenterOverride` (default: first `APlayerStart`).
+- Flow: `BeginPlay` (authority) → ensure `URRLoadoutComponent` on the player pawn once it exists (poll with a timer if the pawn is not spawned yet; handle respawn) → apply starter loadout and, **if the Sui bridge is connected and gear fetched**, equip the best gear of each kind (highest stat) → state `PreMatch` countdown → spawn enemies through `URREnemyDirector::SpawnEnemy` on a ring around the arena center facing it → `InProgress`. Subscribes to `URREnemyDirector::OnAllEnemiesDefeated` (→ next wave or `Won`) and to the local player's `UAAAAttributeComponent::OnDeath` (→ `Lost`). Late joiners / respawn are out of scope but never crash.
+- On `Won`: call `URRSuiBridge::RequestReward(true, EnemiesKilled)` (get the subsystem from the `UGameInstance`) **only if connected**; otherwise record "offline: no on-chain reward". Store the `FRRRewardResult` and expose `GetLastReward()`, `IsRewardPending()`. On `Lost`: no reward call. Use the bridge's delegates (bind once, weak).
+- `RestartMatch()` (BlueprintCallable): despawn leftover enemies, reset player attributes (health/stamina/poise to max, clear `Dead/Staggered/Blocking` states, revive via `UAAAAttributeComponent` API if one exists — read it), teleport the player to the start, return to `PreMatch`.
+- Console (`#if !UE_BUILD_SHIPPING`): `rr.win`, `rr.lose`, `rr.match.restart`.
+
+### 3. `ARRHUD : AAAAAHUD` — canvas-only
+Draw in `DrawHUD()` (call `Super::DrawHUD()` first; keep `ToggleGameMenu` behaviour untouched):
+- **Player panel** bottom-left: Health bar (red), Stamina (green), Poise (yellow, thin). Read values from the player's ASC/attribute set via the avatar pawn (`IAbilitySystemInterface` + `UAAAAttributeSet`), smoothed lerp for the bars, a short "damage ghost" trail.
+- **Enemy health bars**: for each living enemy within 2500 cm and on-screen (`Project`), a small bar above its head + a poise sliver; the **locked-on** target (`AAAAAPlayerController::GetLockedTarget`) gets a bracket reticle.
+- **Damage numbers**: call `UAAAHitFeedbackSubsystem::DrawDamageNumbers(this)` (P6).
+- **Match status** top-centre: state text (`GET READY 3…`, `WAVE 1/1`, enemies remaining) and wave/timer; centre banners on `Won` / `Lost`: **VICTORY** / **DEFEATED** with subtitle lines: reward status (`Minting reward on Sui…` / `Reward: <gear name>  +50 CREDITS` / `Offline – no on-chain reward` / error text), and the **transaction URL** (`FRRRewardResult.Url`) drawn in a smaller font with the hint `[C] copy link   [Enter] play again`.
+- **Wallet/gear panel** top-right: `Wallet: Connected 0x12ab…89ef` or `Press F2 to connect wallet`, credits, equipped gear lines (`Weapon  Pulse Blade  DMG 25  Lv1`), and an owned-gear list (max 9) with numbers `1`–`9` to equip.
+- **Key handling** without Enhanced Input assets: in `BeginPlay` (local player controller only) enable input on the HUD or bind through `PlayerController->InputComponent->BindKey` (guard null; don't double-bind): `F2` → `URRSuiBridge::BeginWalletConnect`, `F3` → `FetchGear`, `1`–`9` → equip owned gear `n` (`URRLoadoutComponent::Equip`), `Enter` on end screen → `ARRGameMode::RestartMatch` (server RPC or direct in standalone; keep it working in single-player PIE first), `C` → `FPlatformApplicationMisc::ClipboardCopy(*Url)`.
+- Fonts: `GEngine->GetMediumFont()/GetSmallFont()`; scale via `DrawText(..., Scale)`; use `FLinearColor`. HUD must never crash when the pawn, ASC, bridge or game mode are missing.
+
+### 4. Plumbing
+- `URRSettings : UDeveloperSettings` (Config=Game, `DefaultConfig`, "Robot Rumble") in RRGame if P7 did not already add it: `DefaultEnemyClass`, `MaxSimultaneousAttackers`, `SuiSidecarUrl` (and make `URRSuiBridge::BaseUrl` default to it).
+- No changes to AAA modules unless a tiny additive accessor is unavoidable (explain each in the report).
+
+## Acceptance (self-check by reading)
+- Kill all enemies → state `Won` → exactly one `RequestReward` call (never twice) → HUD shows pending then result or error; sidecar unreachable shows a readable message and the game stays playable; player death → `Lost`; `RestartMatch` fully resets (no stale delegates, no duplicated bindings, no leaked timers).
+- Everything works single-player in PIE with zero Blueprint assets; HUD allocations per frame minimal (no `NewObject`, no Slate brushes).
+- Report per `00_RULES.md`; list every UPROPERTY the reviewer's Python script should set on `BP_RRGameMode`/`BP_RRHUD`, and the three riskiest spots.
+
+## Reviewer decisions (final, override anything above)
+- Read `Docs/reports/MODULE_DEPS.md` and `Docs/reports/FILE_INDEX.md` first; **never call run_command** (a denied shell call ends your session). Existing files to read fully before editing/using: `Source/RRGame/Public/RREnemy.h`, `RREnemyAIController.h`, `RREnemyDirector.h`, `RRSettings.h`, `RRSuiBridge.h`, `RRTypes.h`, `Source/AAAGame/Public/GameFramework/AAAAHUD.h`, `AAAAGameModeBase.h`, `AAAAPlayerController.h`, `Source/AAACombat/Public/AAACombatComponent.h`.
+- P7 is landed and compiles: `URREnemyDirector` (`SpawnEnemy`, `GetLivingEnemies`, `OnEnemyDied(Enemy, Remaining)`, `OnAllEnemiesDefeated`, auto-discovers enemies), `ARREnemy` (`IsAlive`, `GetHealthFraction`), `URRSettings::Get()`.
+- **`AAAAAHUD::DrawHUD` already draws damage numbers** (P6b). In `ARRHUD::DrawHUD` call `Super::DrawHUD()` exactly once and do NOT draw damage numbers again.
+- `AAAGame` must not depend on RRGame, and `AAAAAHUD` cannot see `UAAAAttributeComponent` (module AAACharacter); `RRGame` can (it depends on AAACharacter). For the player's vitals read the ASC attributes by name through `IAbilitySystemInterface` (Health/MaxHealth/Stamina/MaxStamina/Poise/MaxPoise) with a small helper using `ASC->GetNumericAttribute(FGameplayAttribute)` found by attribute name via `GetSpawnedAttributes()` (same approach as `UAAACombatComponent::RegenTick`) or include `AAAAttributeSet.h` (RRGame depends on AAAAbility).
+- Add to `ARRGameMode`: `UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="RR|Match") TObjectPtr<UAAAWeaponSettings> PlayerWeaponSettings;` and when set, call `UAAACombatComponent::EquipWeapon(PlayerWeaponSettings)` on the player's pawn at match start and after every `RestartMatch` (authority).
+- The wallet/gear panel and keys (F2/F3/1-9/Enter/C) are required; no Blueprint or UMG assets.

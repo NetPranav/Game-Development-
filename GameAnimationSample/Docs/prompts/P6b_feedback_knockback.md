@@ -1,0 +1,19 @@
+# P6b — Hit-feedback subsystem (hit-stop, camera shake, damage numbers) + knockback subsystem
+Read first: `Docs/prompts/00_RULES.md`, `Docs/reports/MODULE_DEPS.md`, `Docs/reports/FILE_INDEX.md`, `Docs/reports/P6a_report.md` (P6a already added `FAAACombatEvents` in module AAACombat). **Never call run_command or any shell tool — a denied shell call ends your session. No directory listing is needed: all paths are named; directories already exist.** Spec source: sections 2 (knockback fallback) and 3 of `Docs/prompts/P6_reactions_feedback_lockon.md` plus its "Reviewer decisions" section (they override).
+
+## Files
+- CREATE `Source/AAACombat/Public/AAAHitFeedbackSubsystem.h` and `Source/AAACombat/Private/AAAHitFeedbackSubsystem.cpp` (`UAAAHitFeedbackSubsystem : UWorldSubsystem`; client-side only: do nothing on `NM_DedicatedServer`).
+- EDIT `Source/AAACombat/AAACombat.Build.cs` only if a new *engine* module is needed (verify). Never add project-module dependencies that create cycles (see MODULE_DEPS.md).
+- CREATE `Source/AAAAbility/Public/AAAKnockbackSubsystem.h` and `Source/AAAAbility/Private/AAAKnockbackSubsystem.cpp` (`UAAAKnockbackSubsystem : UWorldSubsystem`): authority only; subscribes to `FAAACombatEvents::OnHitConfirmed` and `OnStaggered`; applies `UAAAMoverUtils::ApplyVelocityBurst(Victim, awayFromAttacker * speed, 0.18f)` with speeds from `UAAACombatSettings` (`KnockbackLight/Heavy/Stagger`, added in P6a), planar only; skip if the victim has `State.Combat.Dead`.
+- EDIT `Source/AAAGame/Public/GameFramework/AAAAHUD.h` and `Source/AAAGame/Private/GameFramework/AAAAHUD.cpp`: add a `DrawHUD()` override that calls `Super::DrawHUD()` and then `UAAAHitFeedbackSubsystem::DrawDamageNumbers(this)` when the subsystem exists. Keep all existing HUD behaviour and **never allocate Slate brushes** (see `Docs/after/BUGS.md` BUG-02).
+- EDIT `Source/AAACombat/Public/AAACombatSettings.h` additively.
+Read fully before editing: `Source/AAACombat/Public/AAACombatSettings.h`, `Source/AAAAbility/Public/AAAMoverUtils.h`, `Source/AAAGame/Public/GameFramework/AAAAHUD.h`, `Source/AAAGame/Private/GameFramework/AAAAHUD.cpp`, `Source/AAACombat/Public/AAACombatEvents.h` (created by P6a; if it does not exist, stop and say so in the report instead of inventing it).
+
+## Do exactly this
+- Hit feedback subsystem subscribes to the `FAAACombatEvents` delegates in `OnWorldBeginPlay` (or `Initialize`) and unsubscribes in `Deinitialize` (store `FDelegateHandle`s).
+- **Hit-stop**: freeze only the attacker and victim with `AActor::CustomTimeDilation = 0.03f` for `HitStopLightSeconds` / `HitStopHeavySeconds`; restore with a world timer (weak capture). Overlapping stops extend; always restore in `Deinitialize`; only when the local player is attacker or victim; respect `bEnableHitStop`. Verify from the engine source that a world timer keeps ticking normally while only two actors have custom dilation.
+- **Camera shake**: code-defined shake using the 5.8 API (inspect `A:/UNREAL/UE_5.8/Engine/Source/Runtime/Engine/Classes/Camera/CameraShakeBase.h` and the Perlin/Wave oscillator shake pattern classes), started with `APlayerController::ClientStartCameraShake` on the local player when they are attacker or victim; scale by heavy/damage; respect `bEnableCameraShake`.
+- **Damage numbers**: ring buffer (max 32 entries, life 0.9 s, rise 60 cm) filled from `OnHitConfirmed` / `OnBlocked` / `OnParried`; `void DrawDamageNumbers(AHUD* HUD)` projects with `HUD->Project(FVector)` and draws with `HUD->DrawText(...)` using `GEngine->GetMediumFont()`; white normal, orange heavy, grey blocked, cyan parried.
+- Add `bEnableHitStop`, `bEnableCameraShake`, `CameraShakeLightScale`, `CameraShakeHeavyScale` to `UAAACombatSettings` (additive).
+
+Finish: write `Docs/reports/P6b_report.md` (format in `00_RULES.md`, honest self-review ticks) and append a line `P6b done` to `Docs/PROGRESS.md`.

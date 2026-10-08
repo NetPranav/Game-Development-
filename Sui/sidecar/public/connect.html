@@ -1,0 +1,26 @@
+<!doctype html><meta charset=utf-8><title>Robot Rumble - Connect Wallet</title>
+<style>body{font:16px system-ui;background:#0b0f1a;color:#e8f0ff;max-width:520px;margin:10vh auto;padding:0 16px}
+button{display:block;width:100%;margin:8px 0;padding:12px;border:0;border-radius:8px;background:#2f6bff;color:#fff;font-size:16px;cursor:pointer}
+input{width:100%;padding:10px;border-radius:8px;border:1px solid #345;background:#111827;color:#fff;box-sizing:border-box}#msg{margin-top:16px;color:#7fffd4}</style>
+<h2>Robot Rumble &mdash; Connect Sui Wallet</h2><div id=wallets>Looking for wallets&hellip;</div>
+<p>Or paste an address:</p><input id=addr placeholder="0x..."><button id=manual>Use address</button><div id=msg></div>
+<script type=module>
+import { getWallets } from 'https://esm.sh/@wallet-standard/app@1';
+const msg = document.getElementById('msg');
+async function send(address){
+  const r = await fetch('/session',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({address})});
+  msg.textContent = r.ok ? 'Connected '+address+' - return to the game.' : 'Rejected: '+(await r.text());
+}
+const list = document.getElementById('wallets');
+function render(){
+  const ws = getWallets().get().filter(w => w.chains.some(c => c.startsWith('sui:')) && w.features['standard:connect']);
+  list.innerHTML = ws.length ? '' : 'No Sui wallet detected (install Slush / Sui Wallet) - use the address box.';
+  for (const w of ws){
+    const b = document.createElement('button'); b.textContent = 'Connect '+w.name;
+    b.onclick = async()=>{ try{ const {accounts}=await w.features['standard:connect'].connect(); await send(accounts[0].address);}catch(e){msg.textContent=String(e);} };
+    list.appendChild(b);
+  }
+}
+render(); getWallets().on('register', render);
+document.getElementById('manual').onclick = () => send(document.getElementById('addr').value.trim());
+</script>
