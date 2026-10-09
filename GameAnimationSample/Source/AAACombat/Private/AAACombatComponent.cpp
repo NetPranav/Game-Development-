@@ -440,9 +440,9 @@ void UAAACombatComponent::RefreshCombatTimeout(float TimeoutSeconds)
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(AutoSheathTimerHandle);
-		// Players holster only on purpose (1 / mouse wheel / R): the sword vanishes, so auto-sheath would look like a bug.
-		const APawn* OwnerPawn = Cast<APawn>(GetOwner());
-		if (OwnerPawn && OwnerPawn->IsPlayerControlled())
+		// No auto-holster: the sword vanishes when sheathed, so players holster on purpose (1 / mouse wheel / R) and
+		// enemies keep their weapon for the whole fight.
+		if (TimeoutSeconds >= 0.0f)
 		{
 			return;
 		}
@@ -468,6 +468,8 @@ void UAAACombatComponent::UpdateWeaponAttachment()
 
 void UAAACombatComponent::RequestAttack(EAAAAttackType Type)
 {
+	UE_LOG(LogTemp, Verbose, TEXT("[MELEE] request %d on %s: attacking=%d asi=%d"), (int32)Type, *GetNameSafe(GetOwner()),
+		(int32)HasState(FAAAGameplayTags::Get().State_Combat_Attacking), Cast<IAbilitySystemInterface>(GetOwner()) ? 1 : 0);
 	if (!HasState(FAAAGameplayTags::Get().State_Combat_Attacking))
 	{
 		RequestedAttackType = Type;

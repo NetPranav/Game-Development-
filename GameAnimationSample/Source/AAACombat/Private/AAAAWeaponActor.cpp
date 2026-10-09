@@ -106,24 +106,50 @@ void AAAAWeaponActor::InitializeWeapon(UAAAWeaponSettings* InWeaponSettings)
 	}
 }
 
+bool AAAAWeaponActor::GetBladeLine(FVector& OutStart, FVector& OutEnd) const
+{
+	const UStaticMesh* SM = StaticMeshComponent->GetStaticMesh();
+	USceneComponent* ActiveMesh = SM ? Cast<USceneComponent>(StaticMeshComponent) : Cast<USceneComponent>(SkeletalMeshComponent);
+	if (!ActiveMesh) return false;
+	if (ActiveMesh->DoesSocketExist(TraceStartSocket) && ActiveMesh->DoesSocketExist(TraceEndSocket))
+	{
+		OutStart = ActiveMesh->GetSocketLocation(TraceStartSocket);
+		OutEnd = ActiveMesh->GetSocketLocation(TraceEndSocket);
+		return true;
+	}
+	if (!SM) return false;
+	// No sockets: the blade runs along the mesh's longest LOCAL axis, whatever rotation the grip correction applied.
+	const FBoxSphereBounds B = SM->GetBounds();
+	const FVector E = B.BoxExtent;
+	FVector Axis = FVector::XAxisVector; float Len = E.X;
+	if (E.Y > Len) { Axis = FVector::YAxisVector; Len = E.Y; }
+	if (E.Z > Len) { Axis = FVector::ZAxisVector; Len = E.Z; }
+	const FTransform& T = ActiveMesh->GetComponentTransform();
+	OutStart = T.TransformPosition(B.Origin - Axis * Len * 0.6f);
+	OutEnd = T.TransformPosition(B.Origin + Axis * Len);
+	// the hilt is the end nearer to the owner's hand: make Start the hilt
+	if (const AActor* O = GetOwner())
+	{
+		if (FVector::DistSquared(OutEnd, O->GetActorLocation()) < FVector::DistSquared(OutStart, O->GetActorLocation()))
+		{
+			Swap(OutStart, OutEnd);
+		}
+	}
+	return true;
+}
+
 void AAAAWeaponActor::StartWeaponTrace()
 {
 	bIsTracing = true;
 	HitActors.Empty();
 	PreviousBladePositions.Empty();
 	
-	USceneComponent* ActiveMesh = StaticMeshComponent->IsVisible() ? Cast<USceneComponent>(StaticMeshComponent) : Cast<USceneComponent>(SkeletalMeshComponent);
-	if (ActiveMesh)
+	FVector StartPos, EndPos;
+	const bool bLine = GetBladeLine(StartPos, EndPos);
+	UE_LOG(LogTemp, Verbose, TEXT("[TRACE] %s start (owner %s) line=%d %s -> %s mesh=%s"), *GetName(), *GetNameSafe(GetOwner()), (int32)bLine,
+		*StartPos.ToCompactString(), *EndPos.ToCompactString(), *GetNameSafe(StaticMeshComponent->GetStaticMesh()));
+	if (bLine)
 	{
-		FVector StartPos = ActiveMesh->GetSocketLocation(TraceStartSocket);
-		FVector EndPos = ActiveMesh->GetSocketLocation(TraceEndSocket);
-		if (StartPos.IsZero() && EndPos.IsZero())
-		{
-			FBoxSphereBounds MeshBounds = ActiveMesh->CalcBounds(ActiveMesh->GetComponentTransform());
-			StartPos = MeshBounds.Origin - ActiveMesh->GetForwardVector() * (MeshBounds.BoxExtent.X * 0.5f);
-			EndPos = MeshBounds.Origin + ActiveMesh->GetForwardVector() * MeshBounds.BoxExtent.X;
-		}
-
 		for (int32 i = 0; i < NumBladeSamples; ++i)
 		{
 			float Alpha = (NumBladeSamples > 1) ? ((float)i / (NumBladeSamples - 1)) : 1.0f;
@@ -228,25 +254,9 @@ void AAAAWeaponActor::PerformTrace()
 		return;
 	}
 
-	USceneComponent* ActiveMesh = StaticMeshComponent->IsVisible() ? Cast<USceneComponent>(StaticMeshComponent) : Cast<USceneComponent>(SkeletalMeshComponent);
-	if (!ActiveMesh) return;
-
-	bool bHasStartSocket = ActiveMesh->DoesSocketExist(TraceStartSocket);
-	bool bHasEndSocket = ActiveMesh->DoesSocketExist(TraceEndSocket);
-
-	FVector StartLocation;
-	FVector EndLocation;
-
-	if (bHasStartSocket && bHasEndSocket)
+	FVector StartLocation, EndLocation;
+	if (!GetBladeLine(StartLocation, EndLocation)) return;
 	{
-		StartLocation = ActiveMesh->GetSocketLocation(TraceStartSocket);
-		EndLocation = ActiveMesh->GetSocketLocation(TraceEndSocket);
-	}
-	else
-	{
-		FBoxSphereBounds MeshBounds = ActiveMesh->CalcBounds(ActiveMesh->GetComponentTransform());
-		StartLocation = MeshBounds.Origin - ActiveMesh->GetForwardVector() * (MeshBounds.BoxExtent.X * 0.5f);
-		EndLocation = MeshBounds.Origin + ActiveMesh->GetForwardVector() * MeshBounds.BoxExtent.X;
 
 #if !(UE_BUILD_SHIPPING)
 		double CurrentTime = FPlatformTime::Seconds();
@@ -320,4 +330,6 @@ void AAAAWeaponActor::PerformTrace()
 
 		PreviousBladePositions[i] = CurrentSampleLocation;
 	}
+
+	PerformBodySweep();
 }

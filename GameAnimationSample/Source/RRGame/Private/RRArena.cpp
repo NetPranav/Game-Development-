@@ -1,6 +1,7 @@
 // Copyright (c) AAA Multiplayer RPG. All Rights Reserved.
 
 #include "RRArena.h"
+#include "Engine/StaticMeshActor.h"
 #include "RRGame.h"
 #include "RRGameMode.h"
 #include "Components/BoxComponent.h"
@@ -85,7 +86,10 @@ void ARRArena::SnapToGround()
 	UGameplayStatics::GetAllActorsOfClass(W, AActor::StaticClass(), AllActors);
 	for (AActor* A : AllActors)
 	{
-		if (A && (A->GetName().Contains(TEXT("Colosseum")) || A->GetActorLabel().Contains(TEXT("Colosseum"))))
+		// (GetActorLabel is editor-only: match the object name or the static mesh instead, so packaged builds work)
+		const AStaticMeshActor* SMA = Cast<AStaticMeshActor>(A);
+		const UStaticMesh* SM = SMA && SMA->GetStaticMeshComponent() ? SMA->GetStaticMeshComponent()->GetStaticMesh() : nullptr;
+		if (A && (A->GetName().Contains(TEXT("Colosseum")) || (SM && SM->GetName().Contains(TEXT("Colosseum")))))
 		{
 			ColActor = A;
 			break;
@@ -125,8 +129,11 @@ void ARRArena::SnapToGround()
 		}
 
 		// Field effect entry circle at the bottom of the stairs, right before entering the green combat floor
-		FVector ColEntryWorld = ColCenter + FVector(-1630.0f, -870.0f, 200.0f);
-		if (Ar_Ground(W, ColEntryWorld, 1500.0f, 4000.0f, G, this))
+		// trace from just above the arena floor: a high start lands on the gate arch (the circle ended up at Z 680)
+		const float FloorZ = GetActorLocation().Z;
+		FVector ColEntryWorld = ColCenter + FVector(-1630.0f, -870.0f, 0.0f);
+		ColEntryWorld.Z = FloorZ;
+		if (Ar_Ground(W, ColEntryWorld, 250.0f, 600.0f, G, this))
 		{
 			if (EntryPoint) EntryPoint->SetWorldLocation(G + FVector(0.0f, 0.0f, 5.0f));
 		}
@@ -135,8 +142,9 @@ void ARRArena::SnapToGround()
 			if (EntryPoint) EntryPoint->SetWorldLocation(ColCenter + FVector(-1630.0f, -870.0f, 10.0f));
 		}
 
-		FVector ColExitWorld = ColCenter + FVector(-1900.0f, -950.0f, 200.0f);
-		if (Ar_Ground(W, ColExitWorld, 1500.0f, 4000.0f, G, this))
+		FVector ColExitWorld = ColCenter + FVector(-1900.0f, -950.0f, 0.0f);
+		ColExitWorld.Z = FloorZ;
+		if (Ar_Ground(W, ColExitWorld, 250.0f, 600.0f, G, this))
 		{
 			if (ExitPoint) ExitPoint->SetWorldLocation(G + FVector(0.0f, 0.0f, 50.0f));
 		}

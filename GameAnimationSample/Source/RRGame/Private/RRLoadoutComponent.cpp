@@ -157,96 +157,9 @@ void URRLoadoutComponent::Equip(const FRRGearData& GearData)
 						}
 					}
 
-					// Ensure clean 3-hit grounded combo animations on RuntimeSettings (Click 1 = Slash 1, Click 2 = Slash 2, Click 3 = Finisher Combo)
-					{
-						TArray<UAnimMontage*> LightCombos;
-						for (const TCHAR* Path : {
-							TEXT("/Game/RR/Player/AM_P_Pro_L1.AM_P_Pro_L1"),
-							TEXT("/Game/RR/Player/AM_P_Pro_L2.AM_P_Pro_L2"),
-							TEXT("/Game/RR/Player/AM_P_Pro_L3.AM_P_Pro_L3")
-						})
-						{
-							if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
-							{
-								LightCombos.Add(M);
-							}
-						}
-						// Fallback if Pro animations not yet created
-						if (LightCombos.Num() == 0)
-						{
-							for (const TCHAR* Path : {
-								TEXT("/Game/RR/Player/AM_P_UAL_L1.AM_P_UAL_L1"),
-								TEXT("/Game/RR/Player/AM_P_UAL_L2.AM_P_UAL_L2"),
-								TEXT("/Game/RR/Player/AM_P_UAL_L3.AM_P_UAL_L3")
-							})
-							{
-								if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
-								{
-									LightCombos.Add(M);
-								}
-							}
-						}
-						if (LightCombos.Num() > 0)
-						{
-							RuntimeSettings->Animations.LightAttackCombos = LightCombos;
-						}
-					}
+					// Animations come from the weapon data asset (DA_PlayerWeapon -> Pro Sword & Shield montages,
+					// Tools/editor_scripts/pss_wire.py); only the mesh and damage change per gear piece.
 
-					// Ensure heavy attack combos
-					{
-						TArray<UAnimMontage*> HeavyCombos;
-						for (const TCHAR* Path : {
-							TEXT("/Game/RR/Player/AM_P_Pro_H1.AM_P_Pro_H1"),
-							TEXT("/Game/RR/Player/AM_P_Pro_H2.AM_P_Pro_H2"),
-							TEXT("/Game/RR/Player/AM_P_Pro_Kick.AM_P_Pro_Kick"),
-							TEXT("/Game/RR/Player/AM_P_Pro_PowerUp.AM_P_Pro_PowerUp")
-						})
-						{
-							if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
-							{
-								HeavyCombos.Add(M);
-							}
-						}
-						if (HeavyCombos.Num() == 0)
-						{
-							for (const TCHAR* Path : {
-								TEXT("/Game/RR/Player/AM_P_SwordDash.AM_P_SwordDash"),
-								TEXT("/Game/RR/Player/AM_P_Heavy2.AM_P_Heavy2")
-							})
-							{
-								if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
-								{
-									HeavyCombos.Add(M);
-								}
-							}
-						}
-						if (HeavyCombos.Num() > 0)
-						{
-							RuntimeSettings->Animations.HeavyAttackCombos = HeavyCombos;
-						}
-					}
-
-					// Ensure block montage
-					if (UAnimMontage* ProBlock = LoadObject<UAnimMontage>(nullptr, TEXT("/Game/RR/Player/AM_P_Pro_Block.AM_P_Pro_Block")))
-					{
-						if (ProBlock->CompositeSections.Num() > 0)
-						{
-							ProBlock->CompositeSections[0].NextSectionName = ProBlock->CompositeSections[0].SectionName;
-						}
-						RuntimeSettings->Animations.BlockMontage = ProBlock;
-					}
-					else if (!RuntimeSettings->Animations.BlockMontage)
-					{
-						if (UAnimMontage* SwordBlock = LoadObject<UAnimMontage>(nullptr, TEXT("/Game/RR/Player/AM_P_SwordBlock.AM_P_SwordBlock")))
-						{
-							if (SwordBlock->CompositeSections.Num() > 0)
-							{
-								SwordBlock->CompositeSections[0].NextSectionName = SwordBlock->CompositeSections[0].SectionName;
-							}
-							RuntimeSettings->Animations.BlockMontage = SwordBlock;
-						}
-					}
-					
 					RuntimeWeaponSettings = RuntimeSettings;
 					
 					if (UAAACombatComponent* CombatComp = GetOwner()->FindComponentByClass<UAAACombatComponent>())

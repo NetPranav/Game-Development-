@@ -21,7 +21,7 @@ UAAACombatSettings::UAAACombatSettings()
 	DodgeStaminaCost = 15.0f;
 	HitStopLightSeconds = 0.045f;
 	HitStopHeavySeconds = 0.11f;
-	ComboInputBufferSeconds = 0.80f;
+	ComboInputBufferSeconds = 0.45f;
 	LockOnRange = 1600.0f;
 	LockOnMaxAngleDegrees = 65.0f;
 	PoiseBrokenDamageMultiplier = 1.25f;
@@ -34,7 +34,9 @@ UAAACombatSettings::UAAACombatSettings()
 	LungeSpeed = 520.0f;
 	LungeDuration = 0.14f;
 	FinisherLungeMultiplier = 1.4f;
-	ComboWindowOpenFraction = 0.20f;
+	// the next swing may only start after this one's hit window (trace 22%..60%): opening the combo window at 20%
+	// let buffered clicks cancel every swing before it could ever connect
+	ComboWindowOpenFraction = 0.55f;
 	ComboWindowCloseFraction = 0.95f;
 	TraceOpenFraction = 0.22f;
 	TraceCloseFraction = 0.60f;

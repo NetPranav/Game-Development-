@@ -5,6 +5,8 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AAACombatComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "DataAssets/AAAWeaponSettings.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -250,16 +252,24 @@ void UAAAGameplayAbility_Melee::PlayAttack(EAAAAttackType Type)
 	ComboInputTask->EventReceived.AddDynamic(this, &UAAAGameplayAbility_Melee::OnComboInputEvent);
 	ComboInputTask->ReadyForActivation();
 
+	UE_LOG(LogTemp, Verbose, TEXT("[MELEE] %s attack %d -> %s"), *GetNameSafe(GetAvatarActorFromActorInfo()), (int32)Type, *GetNameSafe(MontageToPlay));
 	if (MontageToPlay)
 	{
 		float PlayRate = (Type == EAAAAttackType::Heavy && !MontageToPlay->GetName().Contains("Heavy")) ? 1.4f : 1.0f;
 		
+		CurrentAttackMontage = MontageToPlay;
 		MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, MontageToPlay, PlayRate);
 		MontageTask->OnCompleted.AddDynamic(this, &UAAAGameplayAbility_Melee::OnMontageCompleted);
 		MontageTask->OnBlendOut.AddDynamic(this, &UAAAGameplayAbility_Melee::OnMontageCompleted);
 		MontageTask->OnInterrupted.AddDynamic(this, &UAAAGameplayAbility_Melee::OnMontageCancelled);
 		MontageTask->OnCancelled.AddDynamic(this, &UAAAGameplayAbility_Melee::OnMontageCancelled);
 		MontageTask->ReadyForActivation();
+		{
+			const UAnimInstance* AI = CurrentActorInfo ? CurrentActorInfo->GetAnimInstance() : nullptr;
+			UE_LOG(LogTemp, Verbose, TEXT("[MELEE] played %s on %s (anim %s, mesh %s): playing=%d"), *GetNameSafe(MontageToPlay),
+				*GetNameSafe(AI ? AI->GetOwningActor() : nullptr), *GetNameSafe(AI), *GetNameSafe(CurrentActorInfo ? CurrentActorInfo->SkeletalMeshComponent.Get() : nullptr),
+				AI ? (int32)AI->Montage_IsPlaying(MontageToPlay) : -1);
+		}
 
 		HitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, FAAAGameplayTags::Get().GameplayEvent_Combat_Hit);
 		HitEventTask->EventReceived.AddDynamic(this, &UAAAGameplayAbility_Melee::OnHitEventReceived);
@@ -620,8 +630,19 @@ void UAAAGameplayAbility_Melee::ClearAbilityTimers()
 	}
 }
 
+bool UAAAGameplayAbility_Melee::IsStaleMontageEvent() const
+{
+	// still swinging the current attack -> the event came from the montage it replaced
+	const UAnimInstance* Anim = CurrentActorInfo ? CurrentActorInfo->GetAnimInstance() : nullptr;
+	if (!Anim || !CurrentAttackMontage) return false;
+	const FAnimMontageInstance* Inst = Anim->GetActiveInstanceForMontage(CurrentAttackMontage);
+	return Inst && Inst->IsPlaying() && Inst->GetPosition() < CurrentAttackMontage->GetPlayLength() * 0.8f;
+}
+
 void UAAAGameplayAbility_Melee::OnMontageCompleted()
 {
+	UE_LOG(LogTemp, Verbose, TEXT("[MELEE] end event (stale=%d)"), (int32)IsStaleMontageEvent());
+	if (IsStaleMontageEvent()) return;
 	if (UAAACombatComponent* CombatComp = GetAvatarActorFromActorInfo()->FindComponentByClass<UAAACombatComponent>())
 	{
 		EAAAAttackType NextType;
@@ -636,6 +657,8 @@ void UAAAGameplayAbility_Melee::OnMontageCompleted()
 
 void UAAAGameplayAbility_Melee::OnMontageCancelled()
 {
+	UE_LOG(LogTemp, Verbose, TEXT("[MELEE] end event (stale=%d)"), (int32)IsStaleMontageEvent());
+	if (IsStaleMontageEvent()) return;
 	CurrentComboIndex = 0;
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 }

@@ -81,6 +81,12 @@ protected:
 	UPROPERTY(Transient)
 	bool bComboNextAttackTriggered;
 
+	/** The attack montage playing right now: end/interrupt events from an older montage (the one this attack just
+	 *  replaced) must not end the ability or chain the next attack. */
+	UPROPERTY(Transient)
+	TObjectPtr<class UAnimMontage> CurrentAttackMontage;
+	bool IsStaleMontageEvent() const;
+
 	/** True while the current light attack is the last step of the combo (the finisher). */
 	bool bCurrentIsFinisher = false;
 

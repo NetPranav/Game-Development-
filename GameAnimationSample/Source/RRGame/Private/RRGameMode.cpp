@@ -29,6 +29,8 @@
 #include "RRNpcController.h"
 #include "RRCinematicLook.h"
 #include "RRArena.h"
+#include "RRSwordStanceComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "RRAudioDirector.h"
@@ -183,6 +185,12 @@ void ARRGameMode::PollPlayerReady()
 	{
 		Loadout = NewObject<URRLoadoutComponent>(PlayerPawn);
 		Loadout->RegisterComponent();
+	}
+
+	if (!PlayerPawn->FindComponentByClass<URRSwordStanceComponent>())
+	{
+		URRSwordStanceComponent* Stance = NewObject<URRSwordStanceComponent>(PlayerPawn);
+		Stance->RegisterComponent();
 	}
 
 	if (!PlayerPawn->FindComponentByClass<URRRobotVisualComponent>())
@@ -667,15 +675,39 @@ void ARRGameMode::SpawnAmbientNpcs(const FVector& Center)
 		bool bFound = false;
 		FCollisionQueryParams Q(SCENE_QUERY_STAT(RRNpcGround), false);
 
-		const FVector Dir(FMath::Cos(BaseAngle), FMath::Sin(BaseAngle), 0.0f);
-		const FVector Probe = ArenaCenter + Dir * StandRadius;
-		FHitResult Ground;
-		if (World->LineTraceSingleByChannel(Ground, Probe + FVector(0, 0, 1500.0f), Probe - FVector(0, 0, 1500.0f), ECC_Visibility, Q))
+		// search a walkable seat: start ~9 m above the floor (a 15 m start sat inside the stand geometry and "hit" at its own
+		// start point -> NPCs floated at Z 1504), skip start-penetrating hits and steep faces, try nearby radii / angles
+		for (const float AngleOffset : { 0.0f, 0.12f, -0.12f, 0.25f, -0.25f })
+		for (float R = StandRadius; R <= StandRadius + 600.0f && !bFound; R += 100.0f)
 		{
-			Loc = Ground.ImpactPoint + FVector(0, 0, 95.0f);
-			bFound = true;
+			const FVector Dir(FMath::Cos(BaseAngle + AngleOffset), FMath::Sin(BaseAngle + AngleOffset), 0.0f);
+			const FVector Probe = ArenaCenter + Dir * R;
+			FHitResult Ground;
+			if (World->LineTraceSingleByChannel(Ground, Probe + FVector(0, 0, 900.0f), Probe - FVector(0, 0, 400.0f), ECC_Visibility, Q)
+				&& !Ground.bStartPenetrating && Ground.ImpactNormal.Z > 0.7f && Ground.ImpactPoint.Z > ArenaCenter.Z + 20.0f)
+			{
+				Loc = Ground.ImpactPoint + FVector(0, 0, 95.0f);
+				bFound = true;
+			}
 		}
 
+		// fallback: the strip of arena floor between the duel wall and the stands (right beside the fight)
+		if (!bFound && Arena.IsValid())
+		{
+			for (const float AngleOffset : { 0.0f, 0.15f, -0.15f, 0.3f, -0.3f })
+			for (float R = Arena->Radius + 130.0f; R <= Arena->Radius + 330.0f && !bFound; R += 50.0f)
+			{
+				const FVector Dir(FMath::Cos(BaseAngle + AngleOffset), FMath::Sin(BaseAngle + AngleOffset), 0.0f);
+				const FVector Probe = ArenaCenter + Dir * R;
+				FHitResult Ground;
+				if (World->LineTraceSingleByChannel(Ground, Probe + FVector(0, 0, 250.0f), Probe - FVector(0, 0, 400.0f), ECC_Visibility, Q)
+					&& !Ground.bStartPenetrating && Ground.ImpactNormal.Z > 0.8f && FMath::Abs(Ground.ImpactPoint.Z - ArenaCenter.Z) < 120.0f)
+				{
+					Loc = Ground.ImpactPoint + FVector(0, 0, 95.0f);
+					bFound = true;
+				}
+			}
+		}
 		if (!bFound) { UE_LOG(LogRR, Log, TEXT("NPC %d: no ground on cheering stand, skipped"), i); continue; }
 		const FRotator Facing = (ArenaCenter - Loc).GetSafeNormal2D().Rotation();
 
@@ -764,7 +796,21 @@ void ARRGameMode::TeleportPawn(APawn* Pawn, const FVector& Location, const FRota
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Burst, Pawn->GetActorLocation(), FRotator::ZeroRotator, FVector(1.5f));
 	}
-	Pawn->SetActorLocationAndRotation(Location, FRotator(0.0f, Facing.Yaw, 0.0f), false, nullptr, ETeleportType::TeleportPhysics);
+	// land exactly on the floor under the target: capsule bottom 3 cm above the ground (never inside it)
+	FVector Dest = Location;
+	{
+		float HalfHeight = 90.0f;
+		if (const UCapsuleComponent* Cap = Pawn->FindComponentByClass<UCapsuleComponent>()) { HalfHeight = Cap->GetScaledCapsuleHalfHeight(); }
+		FHitResult Ground;
+		FCollisionQueryParams Q(SCENE_QUERY_STAT(RRTeleportGround), false, Pawn);
+		// start just above the target: a high start lands on arches / gates over the spot (exit ended up on the gate arch)
+		if (GetWorld()->LineTraceSingleByChannel(Ground, Location + FVector(0, 0, 80.0f), Location - FVector(0, 0, 1500.0f), ECC_Visibility, Q))
+		{
+			Dest = Ground.ImpactPoint + FVector(0.0f, 0.0f, HalfHeight + 3.0f);
+		}
+	}
+	Pawn->SetActorLocationAndRotation(Dest, FRotator(0.0f, Facing.Yaw, 0.0f), false, nullptr, ETeleportType::TeleportPhysics);
+	UE_LOG(LogRR, Log, TEXT("Teleport %s -> %s"), *Pawn->GetName(), *Dest.ToCompactString());
 	if (AController* C = Pawn->GetController())
 	{
 		C->SetControlRotation(FRotator(-10.0f, Facing.Yaw, 0.0f));
@@ -801,7 +847,7 @@ void ARRGameMode::RequestArenaMatch(ARRArena* InArena)
 	TeleportPawn(Player, PSpot, (BSpot - PSpot).Rotation(), true);
 	if (FVector::Dist2D(Boss->GetActorLocation(), BSpot) > 150.0f)
 	{
-		Boss->SetActorLocation(BSpot + FVector(0, 0, 20.0f), false, nullptr, ETeleportType::TeleportPhysics);
+		TeleportPawn(Boss, BSpot, (PSpot - BSpot).Rotation(), false);
 	}
 	Boss->SetActorRotation((PSpot - BSpot).GetSafeNormal2D().Rotation());
 	Arena->SetActorPassesWalls(Boss, false);

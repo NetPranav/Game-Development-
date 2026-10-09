@@ -138,7 +138,8 @@ void ARRHUD::OnKeyF3()
 
 void ARRHUD::EquipGearIndex(int32 Index)
 {
-	if (Screen != ERRScreen::Playing) return;
+	// number keys pick gear only inside the inventory: in play, 1 / mouse wheel draw and holster the sword
+	if (Screen != ERRScreen::Playing || !bInventoryOpen) return;
 	APlayerController* PC = GetOwningPlayerController();
 	APawn* Pawn = PC ? PC->GetPawn() : nullptr;
 	if (Pawn)

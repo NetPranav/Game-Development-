@@ -42,6 +42,9 @@ protected:
 	/** Sweep from the owner along its facing direction; used when the weapon has no mesh (weapon is part of the body). */
 	void PerformBodySweep();
 
+	/** Blade line in world space: TraceStart/TraceEnd sockets, else the static mesh's longest local axis (hilt first). */
+	bool GetBladeLine(FVector& OutStart, FVector& OutEnd) const;
+
 	/** Team/dead filtering + GameplayEvent.Combat.Hit dispatch shared by blade and body sweeps. */
 	void ProcessHit(const FHitResult& Hit, AActor* MyOwner, class IGenericTeamAgentInterface* MyTeamAgent, TArray<AActor*>& ActorsToIgnore);
 

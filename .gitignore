@@ -73,3 +73,4 @@ GameAnimationSample/ExternalModels/**
 !GameAnimationSample/External*/**/License*
 GameAnimationSample/*.zip
 GameAnimationSample/*.glb
+!GameAnimationSample/Content/Movies/
