@@ -36,11 +36,25 @@ void URRCinematicDirector::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	BossBeginHandle = FRRBossEvents::OnSpecialAttackBegin().AddUObject(this, &URRCinematicDirector::OnBossSpecialBegin);
+	DeathblowHandle = FRRBossEvents::OnDeathblow().AddWeakLambda(this, [this](ARRBoss* Boss)
+	{
+		if (Boss && Boss->GetWorld() == GetWorld()) { PlayMoment(0.2f, 0.9f); }
+	});
+}
+
+void URRCinematicDirector::PlayMoment(float Dilation, float RealSeconds)
+{
+	if (bActive || !GetWorld()) return;
+	UGameplayStatics::SetGlobalTimeDilation(this, Dilation);
+	MomentEnd = FPlatformTime::Seconds() + RealSeconds;
+	bMoment = true;
 }
 
 void URRCinematicDirector::Deinitialize()
 {
 	FRRBossEvents::OnSpecialAttackBegin().Remove(BossBeginHandle);
+	FRRBossEvents::OnDeathblow().Remove(DeathblowHandle);
+	if (bMoment && GetWorld()) { UGameplayStatics::SetGlobalTimeDilation(this, 1.0f); bMoment = false; }
 	RestoreWorld();
 	Super::Deinitialize();
 }
@@ -238,7 +252,13 @@ void URRCinematicDirector::Tick(float DeltaTime)
 	const float RealDelta = FMath::Min(FApp::GetDeltaTime(), 0.1f);
 	if (!bActive)
 	{
-		BarAlpha = FMath::FInterpConstantTo(BarAlpha, 0.0f, RealDelta, 3.0f);
+		// deathblow "moment": brief slow motion with the letterbox half in
+		if (bMoment && FPlatformTime::Seconds() >= MomentEnd)
+		{
+			bMoment = false;
+			UGameplayStatics::SetGlobalTimeDilation(this, 1.0f);
+		}
+		BarAlpha = FMath::FInterpConstantTo(BarAlpha, bMoment ? 0.6f : 0.0f, RealDelta, bMoment ? 6.0f : 2.0f);
 		return;
 	}
 

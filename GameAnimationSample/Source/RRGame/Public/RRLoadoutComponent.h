@@ -49,6 +49,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RR|Loadout")
 	int64 GetVisualSeed() const;
 
+	void UpdateShieldAttachment();
+
 	UPROPERTY(BlueprintAssignable, Category = "RR|Loadout")
 	FOnLoadoutChangedSignature OnLoadoutChanged;
 
@@ -83,4 +85,7 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<class UAAAWeaponSettings> RuntimeWeaponSettings;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> ShieldMeshComponent;
 };

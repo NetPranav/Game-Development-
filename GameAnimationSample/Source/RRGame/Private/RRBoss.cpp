@@ -61,11 +61,11 @@ ARRBoss::ARRBoss(const FObjectInitializer& ObjectInitializer)
 	AIControllerClass = ARRBossAIController::StaticClass();
 	
 	BossName = FText::FromString(TEXT("THE GREYSTONE"));
-	Tuning.MaxPoise = 120.0f;
-	Tuning.MaxHealth = 260.0f;
+	Tuning.MaxPoise = 240.0f;
+	Tuning.MaxHealth = 650.0f;
 
 	// Sensible defaults for Greystone from SPEC_BOSS
-	auto AddAttack = [&](FName Id, const TCHAR* AnimName, ERRBossAttackKind Kind, int32 MinPhase)
+	auto AddAttack = [&](FName Id, const TCHAR* AnimName, ERRBossAttackKind Kind, int32 MinPhase, float DmgMult = 1.0f, float PoiseDmg = 20.0f)
 	{
 		FRRBossAttack Attack;
 		Attack.Id = Id;
@@ -73,21 +73,23 @@ ARRBoss::ARRBoss(const FObjectInitializer& ObjectInitializer)
 		Attack.Sequence = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(Path));
 		Attack.Kind = Kind;
 		Attack.MinPhase = MinPhase;
+		Attack.DamageMultiplier = DmgMult;
+		Attack.PoiseDamage = PoiseDmg;
 		Attacks.Add(Attack);
 	};
 
-	AddAttack(TEXT("Attack_A_Fast"), TEXT("Attack_A_Fast"), ERRBossAttackKind::Normal, 1);
-	AddAttack(TEXT("Attack_A_Med"), TEXT("Attack_A_Med"), ERRBossAttackKind::Normal, 1);
-	AddAttack(TEXT("Attack_B_Fast"), TEXT("Attack_B_Fast"), ERRBossAttackKind::Normal, 1);
-	AddAttack(TEXT("Attack_B_Med"), TEXT("Attack_B_Med"), ERRBossAttackKind::Normal, 1);
-	AddAttack(TEXT("Attack_C_Fast"), TEXT("Attack_C_Fast"), ERRBossAttackKind::Normal, 1);
-	AddAttack(TEXT("Attack_C_Med"), TEXT("Attack_C_Med"), ERRBossAttackKind::Normal, 1);
-	AddAttack(TEXT("Attack_D_Med"), TEXT("Attack_D_Med"), ERRBossAttackKind::Normal, 1);
-	AddAttack(TEXT("Attack_D_Slow"), TEXT("Attack_D_Slow"), ERRBossAttackKind::PerilousSweep, 1);
-	AddAttack(TEXT("Attack_A_Slow"), TEXT("Attack_A_Slow"), ERRBossAttackKind::PerilousThrust, 1);
-	AddAttack(TEXT("Ability_E"), TEXT("Ability_E"), ERRBossAttackKind::PerilousSpecial, 2);
-	AddAttack(TEXT("Ability_Q"), TEXT("Ability_Q"), ERRBossAttackKind::PerilousSpecial, 2);
-	AddAttack(TEXT("Attack_RMB"), TEXT("Attack_RMB"), ERRBossAttackKind::Normal, 2);
+	AddAttack(TEXT("Attack_A_Fast"), TEXT("Attack_A_Fast"), ERRBossAttackKind::Normal, 1, 0.85f, 15.0f);
+	AddAttack(TEXT("Attack_A_Med"), TEXT("Attack_A_Med"), ERRBossAttackKind::Normal, 1, 1.1f, 22.0f);
+	AddAttack(TEXT("Attack_B_Fast"), TEXT("Attack_B_Fast"), ERRBossAttackKind::Normal, 1, 0.85f, 15.0f);
+	AddAttack(TEXT("Attack_B_Med"), TEXT("Attack_B_Med"), ERRBossAttackKind::Normal, 1, 1.1f, 22.0f);
+	AddAttack(TEXT("Attack_C_Fast"), TEXT("Attack_C_Fast"), ERRBossAttackKind::Normal, 1, 0.9f, 16.0f);
+	AddAttack(TEXT("Attack_C_Med"), TEXT("Attack_C_Med"), ERRBossAttackKind::Normal, 1, 1.15f, 24.0f);
+	AddAttack(TEXT("Attack_D_Med"), TEXT("Attack_D_Med"), ERRBossAttackKind::Normal, 1, 1.2f, 25.0f);
+	AddAttack(TEXT("Attack_D_Slow"), TEXT("Attack_D_Slow"), ERRBossAttackKind::PerilousSweep, 1, 1.6f, 35.0f);
+	AddAttack(TEXT("Attack_A_Slow"), TEXT("Attack_A_Slow"), ERRBossAttackKind::PerilousThrust, 1, 1.7f, 40.0f);
+	AddAttack(TEXT("Ability_E"), TEXT("Ability_E"), ERRBossAttackKind::PerilousSpecial, 2, 2.0f, 45.0f);
+	AddAttack(TEXT("Ability_Q"), TEXT("Ability_Q"), ERRBossAttackKind::PerilousSpecial, 2, 1.8f, 40.0f);
+	AddAttack(TEXT("Attack_RMB"), TEXT("Attack_RMB"), ERRBossAttackKind::Normal, 2, 1.25f, 26.0f);
 }
 
 void ARRBoss::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -101,6 +103,13 @@ void ARRBoss::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 
 void ARRBoss::BeginPlay()
 {
+	// A boss walks in slowly and hits hard (set before ARREnemy::BeginPlay copies Tuning into the attributes / movement;
+	// BP_RRBoss inherits the faster Greystone grunt values otherwise).
+	Tuning.WalkSpeed = 170.0f;
+	Tuning.ChaseSpeed = 250.0f;
+	Tuning.MaxHealth = FMath::Max(Tuning.MaxHealth, 650.0f);
+	Tuning.MaxPoise = FMath::Max(Tuning.MaxPoise, 240.0f);
+
 	Super::BeginPlay();
 
 	if (HasAuthority())
@@ -242,18 +251,10 @@ void ARRBoss::ExecuteDeathblow(AActor* Attacker)
 		ASC->SetNumericAttributeBase(UAAAAttributeSet::GetPoiseAttribute(), AttributeSet->GetMaxPoise());
 	}
 
-	if (CombatComponent)
-	{
-		CombatComponent->PlayHitReaction(Attacker, true); // Play heavy hit reaction
-	}
-
 	if (SegmentsRemaining > 0)
 	{
-		if (ASC)
-		{
-			ASC->SetNumericAttributeBase(UAAAAttributeSet::GetHealthAttribute(), SegmentMaxHealth);
-		}
-		
+		BeginPhaseTransition();   // falls, lies still, rises with a full bar, taunts
+
 		Phase++;
 		Tuning.AttackCooldownMin *= 0.7f;
 		Tuning.AttackCooldownMax *= 0.7f;
@@ -263,10 +264,11 @@ void ARRBoss::ExecuteDeathblow(AActor* Attacker)
 			MoveComp->MaxWalkSpeed = Tuning.ChaseSpeed;
 		}
 
-		MulticastPhaseChangedPresentation(Phase);
 	}
 	else
 	{
+		StopAnimMontage();
+		PlayBossAnim(TEXT("Death"), 1.0f, 0.1f, 0.0f, /*bHoldLastFrame*/ true);
 		if (ASC)
 		{
 			// Last segment: stop being "segmented", then let the normal death path run (HealthChanged -> OnDeath -> director).
@@ -282,6 +284,73 @@ void ARRBoss::ExecuteDeathblow(AActor* Attacker)
 	}
 
 	MulticastDeathblowPresentation();
+}
+
+void ARRBoss::SetTurnRate(float YawDegPerSec)
+{
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->RotationRate = FRotator(0.0f, YawDegPerSec, 0.0f);
+	}
+}
+
+float ARRBoss::PlayBossAnim(const TCHAR* AnimName, float Rate, float BlendIn, float BlendOut, bool bHoldLastFrame)
+{
+	UAnimInstance* AnimInst = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	const FString Path = FString::Printf(TEXT("/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/%s.%s"), AnimName, AnimName);
+	UAnimSequence* Seq = Cast<UAnimSequence>(StaticLoadObject(UAnimSequence::StaticClass(), nullptr, *Path));
+	if (!AnimInst || !Seq) return 0.0f;
+	UAnimMontage* M = AnimInst->PlaySlotAnimationAsDynamicMontage(Seq, AnimSlot, BlendIn, BlendOut, Rate);
+	const float Len = Seq->GetPlayLength() / FMath::Max(0.01f, Rate);
+	if (M && bHoldLastFrame)
+	{
+		// freeze on the last pose (lying on the ground) instead of blending back to idle
+		TWeakObjectPtr<UAnimInstance> WeakAnim(AnimInst);
+		TWeakObjectPtr<UAnimMontage> WeakM(M);
+		FTimerHandle H;
+		GetWorldTimerManager().SetTimer(H, [WeakAnim, WeakM]()
+		{
+			if (WeakAnim.IsValid() && WeakM.IsValid()) WeakAnim->Montage_Pause(WeakM.Get());
+		}, FMath::Max(0.05f, Len - 0.06f), false);
+	}
+	return Len;
+}
+
+void ARRBoss::PlayTaunt()
+{
+	if (bPhaseTransition || !IsAlive()) return;
+	PlayBossAnim(FMath::RandBool() ? TEXT("Emote_Taunt_SwordPoint_T1") : TEXT("Emote_Taunt_BringItOn_T1"), 1.0f, 0.25f, 0.35f);
+}
+
+void ARRBoss::BeginPhaseTransition()
+{
+	bPhaseTransition = true;
+	bDeathblowReady = false;
+	GetWorldTimerManager().ClearTimer(TraceStartHandle);
+	if (CombatComponent && CombatComponent->GetCurrentWeapon()) { CombatComponent->GetCurrentWeapon()->StopWeaponTrace(); }
+	if (ASC) { ASC->AddLooseGameplayTag(FAAAGameplayTags::Get().State_Combat_Invulnerable); }
+	SetTurnRate(0.0f);
+	StopAnimMontage();
+
+	// 1) collapse and lie still, 2) rise again while the bar refills, 3) taunt, 4) fight on
+	const float FallLen = PlayBossAnim(TEXT("Death"), 1.0f, 0.1f, 0.0f, /*bHoldLastFrame*/ true);
+	GetWorldTimerManager().SetTimer(PhaseTimer, [this]()
+	{
+		if (ASC) { ASC->SetNumericAttributeBase(UAAAAttributeSet::GetHealthAttribute(), SegmentMaxHealth); }
+		MulticastPhaseChangedPresentation(Phase);
+		const float RiseLen = PlayBossAnim(TEXT("Respawn"), 1.0f, 0.2f, 0.3f);
+		GetWorldTimerManager().SetTimer(PhaseTimer, [this]()
+		{
+			const float TauntLen = PlayBossAnim(TEXT("Emote_Taunt_SwordPoint_T1"), 1.0f, 0.25f, 0.35f);
+			GetWorldTimerManager().SetTimer(PhaseTimer, [this]()
+			{
+				bPhaseTransition = false;
+				SetTurnRate(DefaultTurnRate);
+				if (ASC) { ASC->RemoveLooseGameplayTag(FAAAGameplayTags::Get().State_Combat_Invulnerable); }
+			}, FMath::Max(0.5f, TauntLen * 0.85f), false);
+		}, FMath::Max(0.5f, RiseLen * 0.95f), false);
+	}, FallLen + PhaseLieSeconds, false);
+	UE_LOG(LogRR, Log, TEXT("Boss segment broken: falls (%.1fs) and rises in phase %d"), FallLen + PhaseLieSeconds, Phase + 1);
 }
 
 void ARRBoss::MulticastDeathblowPresentation_Implementation()
@@ -399,6 +468,15 @@ void ARRBoss::OnWeaponHit(const FGameplayEventData* Payload)
 		if (DataPoise.IsValid()) SpecHandle.Data->SetSetByCallerMagnitude(DataPoise, CurrentAttackPoiseDamage);
 		
 		ASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
+
+		// Hit feedback (victim reaction, knockback, damage screen, hit-stop) unless the swing was deflected.
+		if (CombatComponent && !TargetASC->HasMatchingGameplayTag(FAAAGameplayTags::Get().State_Combat_Parrying))
+		{
+			FHitResult FakeHit;
+			FakeHit.ImpactPoint = TargetActor->GetActorLocation();
+			FakeHit.Location = FakeHit.ImpactPoint;
+			CombatComponent->Multicast_OnHitConfirmed(this, TargetActor, FakeHit, CurrentAttackKind != ERRBossAttackKind::Normal, BaseDmg * CurrentAttackDamageMult);
+		}
 	}
 }
 
@@ -409,14 +487,15 @@ void ARRBoss::PlayAttackMontage(const FRRBossAttack& Attack)
 	UAnimInstance* AnimInst = CombatComponent->FindAnimInstance();
 	if (!AnimInst) return;
 	
+	if (bPhaseTransition) return;
 	UAnimMontage* MontageToPlay = Attack.Montage.LoadSynchronous();
 	if (!MontageToPlay && Attack.Sequence.LoadSynchronous())
 	{
-		MontageToPlay = AnimInst->PlaySlotAnimationAsDynamicMontage(Attack.Sequence.Get(), FName("DefaultSlot"), 0.15f, 0.2f, Attack.PlayRate);
+		MontageToPlay = AnimInst->PlaySlotAnimationAsDynamicMontage(Attack.Sequence.Get(), AnimSlot, 0.15f, 0.2f, Attack.PlayRate);
 	}
 	else if (MontageToPlay)
 	{
-		AnimInst->Montage_Play(MontageToPlay, Attack.PlayRate);
+		CombatComponent->PlayMontageOnOwner(MontageToPlay, Attack.PlayRate);
 	}
 	
 	if (!MontageToPlay) return;
@@ -455,12 +534,19 @@ void ARRBoss::PlayAttackMontage(const FRRBossAttack& Attack)
 		}
 	}
 
+	SetTurnRate(TrackingTurnRate);   // wind-up: keep facing the player
+
 	TWeakObjectPtr<AAAAWeaponActor> WeakWeapon(Weapon);
-	GetWorldTimerManager().SetTimer(TraceStartHandle, [WeakWeapon]() { if (AAAAWeaponActor* W = WeakWeapon.Get()) W->StartWeaponTrace(); }, StartTime, false);
+	GetWorldTimerManager().SetTimer(TraceStartHandle, [this, WeakWeapon]()
+	{
+		SetTurnRate(CommittedTurnRate);   // swing committed: a late sidestep really avoids it
+		if (AAAAWeaponActor* W = WeakWeapon.Get()) W->StartWeaponTrace();
+	}, StartTime, false);
 	GetWorldTimerManager().SetTimer(TraceEndHandle, [WeakWeapon]() { if (AAAAWeaponActor* W = WeakWeapon.Get()) W->StopWeaponTrace(); }, EndTime, false);
 	
 	GetWorldTimerManager().SetTimer(AttackRecoverHandle, [this]()
 	{
+		SetTurnRate(DefaultTurnRate);
 		if (ASC)
 		{
 			FGameplayTag PerilousTag = FGameplayTag::RequestGameplayTag(FName("State.Boss.Perilous"), false);

@@ -6,10 +6,56 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AAAGameplayTags.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "RRGame.h"
 
 ARRBossAIController::ARRBossAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+bool ARRBossAIController::HasNavMesh() const
+{
+	UNavigationSystemV1* Nav = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	return Nav && Nav->GetDefaultNavDataInstance(FNavigationSystem::DontCreate) != nullptr;
+}
+
+void ARRBossAIController::ThinkDormant()
+{
+	if (!BossEnemy.IsValid()) return;
+	if (UCharacterMovementComponent* MoveComp = BossEnemy->GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = BossEnemy->Tuning.WalkSpeed;   // the entrance is a slow, heavy walk
+	}
+	if (bHasWalkTarget)
+	{
+		const FVector ToGoal = WalkTarget - BossEnemy->GetActorLocation();
+		if (ToGoal.Size2D() < 70.0f)
+		{
+			bHasWalkTarget = false;
+			StopMovement();
+		}
+		else
+		{
+			ClearFocus(EAIFocusPriority::Gameplay);
+			SetFocalPoint(WalkTarget + ToGoal.GetSafeNormal2D() * 500.0f);
+			SteerDir = ToGoal.GetSafeNormal2D();
+			SteerScale = 1.0f;
+			return;
+		}
+	}
+	SetFocalPoint(FaceTarget);
+}
+
+void ARRBossAIController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (BossEnemy.IsValid() && BossEnemy->IsAlive() && !SteerDir.IsNearlyZero() && GetWorld()->GetTimeSeconds() >= BossAttackTimer)
+	{
+		BossEnemy->AddMovementInput(SteerDir, SteerScale);
+	}
 }
 
 void ARRBossAIController::OnPossess(APawn* InPawn)
@@ -108,6 +154,17 @@ void ARRBossAIController::ThinkLoop()
 		return;
 	}
 	
+	SteerDir = FVector::ZeroVector; // re-decided every think; Tick applies it each frame
+	if (bDormant)
+	{
+		ThinkDormant();
+		return;
+	}
+	if (BossEnemy->IsInPhaseTransition())
+	{
+		StopMovement();
+		return;
+	}
 	AcquireTarget();
 	HandleStaggerAndReactions();
 	
@@ -171,7 +228,9 @@ void ARRBossAIController::ThinkLoop()
 			}
 			
 			FVector Tangent = FVector::CrossProduct(FVector::UpVector, DirToTarget) * CurrentCircleDirection;
-			BossEnemy->AddMovementInput(Tangent + (DistToTarget > BossEnemy->Tuning.PreferredCircleRange ? DirToTarget : -DirToTarget)*0.2f);
+			// slow, menacing strafe while it waits (Sekiro bosses walk around you between strings)
+			SteerDir = (Tangent + (DistToTarget > BossEnemy->Tuning.PreferredCircleRange ? DirToTarget : -DirToTarget) * 0.35f).GetSafeNormal();
+			SteerScale = 0.55f;
 		}
 	}
 	
@@ -195,7 +254,25 @@ void ARRBossAIController::HandleMovement()
 	{
 		MoveComp->MaxWalkSpeed = BossEnemy->Tuning.ChaseSpeed;
 	}
-	MoveToActor(TargetActor.Get(), BossEnemy->Tuning.AttackRange * 0.8f, false, true, true);
+	// Pathfind when the level has a navmesh; otherwise (or when the path fails, e.g. the landscape was edited and the
+	// navmesh not rebuilt) walk straight at the target so the boss never just stands there.
+	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
+	if (HasNavMesh())
+	{
+		Result = MoveToActor(TargetActor.Get(), BossEnemy->Tuning.AttackRange * 0.8f, false, true, true);
+	}
+	if (Result == EPathFollowingRequestResult::Failed)
+	{
+		StopMovement();
+		SteerDir = (TargetActor->GetActorLocation() - BossEnemy->GetActorLocation()).GetSafeNormal2D();
+		SteerScale = 1.0f;
+		static bool bWarned = false;
+		if (!bWarned)
+		{
+			bWarned = true;
+			UE_LOG(LogRR, Warning, TEXT("Boss: no navmesh path to the player - steering directly. Add a NavMeshBoundsVolume over the arena for proper pathing."));
+		}
+	}
 }
 
 void ARRBossAIController::HandleCombat()

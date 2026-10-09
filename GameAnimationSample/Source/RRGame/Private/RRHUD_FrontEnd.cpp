@@ -16,14 +16,14 @@
 
 namespace
 {
-	float Ease(float T) { T = FMath::Clamp(T, 0.0f, 1.0f); return T * T * (3.0f - 2.0f * T); }
-	float Fade(double T, double Start, double Dur) { return Ease((float)((T - Start) / FMath::Max(0.0001, Dur))); }
+	float Fe_Ease(float T) { T = FMath::Clamp(T, 0.0f, 1.0f); return T * T * (3.0f - 2.0f * T); }
+	float Fe_Fade(double T, double Start, double Dur) { return Fe_Ease((float)((T - Start) / FMath::Max(0.0001, Dur))); }
 
-	const FLinearColor Amber(1.0f, 0.62f, 0.16f, 1.0f);
-	const FLinearColor Steel(0.86f, 0.89f, 0.92f, 1.0f);
-	const FLinearColor Dim(0.55f, 0.58f, 0.62f, 1.0f);
+	const FLinearColor Fe_Amber(1.0f, 0.62f, 0.16f, 1.0f);
+	const FLinearColor Fe_Steel(0.86f, 0.89f, 0.92f, 1.0f);
+	const FLinearColor Fe_Dim(0.55f, 0.58f, 0.62f, 1.0f);
 
-	FLinearColor WithA(FLinearColor C, float A) { C.A = A; return C; }
+	FLinearColor Fe_WithA(FLinearColor C, float A) { C.A = A; return C; }
 }
 
 void ARRHUD::EnterUIMode(bool bCursor, bool bPause)
@@ -69,6 +69,9 @@ void ARRHUD::SetScreen(ERRScreen NewScreen)
 	case ERRScreen::Menu:
 		if (!IsMenuFamily(Old)) { MenuSel = 0; EnterUIMode(true); }
 		break;
+	case ERRScreen::IntroVideo:
+		EnterUIMode(false, /*bPause*/ false);
+		break;
 	case ERRScreen::Loading:
 		LoadStart = FPlatformTime::Seconds();
 		LoadProgress = 0.0f;
@@ -96,6 +99,12 @@ void ARRHUD::StartNewGame()
 
 void ARRHUD::FinishLoading()
 {
+	// optional intro film between the loading screen and gameplay (the game starts when it ends)
+	if (Screen != ERRScreen::IntroVideo && StartIntroVideo())
+	{
+		SetScreen(ERRScreen::IntroVideo);
+		return;
+	}
 	if (ARRGameMode* GM = GetWorld()->GetAuthGameMode<ARRGameMode>())
 	{
 		GM->BeginGameplay();
@@ -122,20 +131,20 @@ void ARRHUD::DrawSplash()
 		return;
 	}
 
-	const float Out = 1.0f - Fade(T, TotalHold, OutDur);
+	const float Out = 1.0f - Fe_Fade(T, TotalHold, OutDur);
 	const float CX = CanvasW * 0.5f;
 	const float CY = CanvasH * 0.5f;
 
-	Embers(0.32f * Fade(T, 1.2, 2.0) * Out);
+	Embers(0.32f * Fe_Fade(T, 1.2, 2.0) * Out);
 
 	// emblem
-	const float LogoA = Fade(T, 0.7, 1.6) * Out;
-	const float LogoSize = U(150.0f) * (0.94f + 0.06f * Ease((float)((T - 0.7) / 2.0)));
+	const float LogoA = Fe_Fade(T, 0.7, 1.6) * Out;
+	const float LogoSize = U(150.0f) * (0.94f + 0.06f * Fe_Ease((float)((T - 0.7) / 2.0)));
 	DrawLogoMark(CX, CY - U(205.0f), LogoSize, LogoA);
 
 	// title: letters reveal one by one while the tracking settles
 	const FString Title = TEXT("KAIZEEN");
-	const float TrackT = Ease((float)((T - 1.8) / 3.2));
+	const float TrackT = Fe_Ease((float)((T - 1.8) / 3.2));
 	const float Tracking = FMath::Lerp(64.0f, 26.0f, TrackT);
 	const float TitleSize = 168.0f;
 	const float TitleW = TxtWidth(Title, TitleSize, Tracking);
@@ -144,19 +153,19 @@ void ARRHUD::DrawSplash()
 	for (int32 i = 0; i < Title.Len(); ++i)
 	{
 		const FString Ch = Title.Mid(i, 1);
-		const float A = Fade(T, 1.8 + i * 0.17, 0.7) * Out;
-		const float Lift = (1.0f - Fade(T, 1.8 + i * 0.17, 0.9)) * U(18.0f);
+		const float A = Fe_Fade(T, 1.8 + i * 0.17, 0.7) * Out;
+		const float Lift = (1.0f - Fe_Fade(T, 1.8 + i * 0.17, 0.9)) * U(18.0f);
 		Txt(Ch, PX, TY + Lift, TitleSize, FLinearColor(0.95f, 0.96f, 0.98f, A), 0.0f, 0.0f);
 		PX += TxtWidth(Ch, TitleSize) + U(Tracking);
 	}
 
 	// hairline
-	const float LineA = Fade(T, 3.9, 1.0) * Out;
-	const float LineW = U(560.0f) * Fade(T, 3.9, 1.3);
-	Box(CX - LineW * 0.5f, CY + U(88.0f), LineW, FMath::Max(1.0f, U(2.0f)), WithA(Amber, LineA));
+	const float LineA = Fe_Fade(T, 3.9, 1.0) * Out;
+	const float LineW = U(560.0f) * Fe_Fade(T, 3.9, 1.3);
+	Box(CX - LineW * 0.5f, CY + U(88.0f), LineW, FMath::Max(1.0f, U(2.0f)), Fe_WithA(Fe_Amber, LineA));
 
 	// quote
-	const float QA = Fade(T, 4.6, 1.5) * Out;
+	const float QA = Fe_Fade(T, 4.6, 1.5) * Out;
 	Txt(TEXT("Every fall teaches. Every blade remembers."), CX, CY + U(118.0f), 34.0f, FLinearColor(0.72f, 0.75f, 0.80f, QA), 0.5f, 3.0f);
 	Txt(TEXT("KAIZEEN   //   CONTINUOUS IMPROVEMENT"), CX, CY + U(176.0f), 20.0f, FLinearColor(0.45f, 0.48f, 0.52f, QA * 0.9f), 0.5f, 7.0f);
 
@@ -184,7 +193,7 @@ void ARRHUD::DrawMenu()
 		}
 	}
 	const double T = Now - ScreenStart;
-	const float In = Fade(T, 0.0, 1.4);
+	const float In = Fe_Fade(T, 0.0, 1.4);
 
 	// --- backdrop: slow Ken Burns on the key art, with a cinematic grade ---
 	Box(0.0f, 0.0f, CanvasW, CanvasH, FLinearColor(0.01f, 0.012f, 0.016f, 1.0f));
@@ -207,8 +216,8 @@ void ARRHUD::DrawMenu()
 	// --- title block ---
 	DrawLogoMark(ML + U(34.0f), CanvasH * 0.135f, U(68.0f), In);
 	Txt(TEXT("KAIZEEN"), ML + U(92.0f), CanvasH * 0.085f, 118.0f, FLinearColor(0.96f, 0.97f, 0.99f, In), 0.0f, 20.0f);
-	Txt(TEXT("ROBOT   RUMBLE"), ML + U(96.0f), CanvasH * 0.085f + U(124.0f), 28.0f, WithA(Amber, In), 0.0f, 16.0f);
-	Box(ML + U(96.0f), CanvasH * 0.085f + U(168.0f), U(420.0f) * Fade(T, 0.5, 1.2), FMath::Max(1.0f, U(2.0f)), FLinearColor(1, 1, 1, 0.35f * In));
+	Txt(TEXT("ROBOT   RUMBLE"), ML + U(96.0f), CanvasH * 0.085f + U(124.0f), 28.0f, Fe_WithA(Fe_Amber, In), 0.0f, 16.0f);
+	Box(ML + U(96.0f), CanvasH * 0.085f + U(168.0f), U(420.0f) * Fe_Fade(T, 0.5, 1.2), FMath::Max(1.0f, U(2.0f)), FLinearColor(1, 1, 1, 0.35f * In));
 
 	// --- menu list ---
 	static const TCHAR* Items[] = { TEXT("CONTINUE"), TEXT("NEW GAME"), TEXT("BLOCKCHAIN"), TEXT("SETTINGS"), TEXT("QUIT") };
@@ -234,7 +243,7 @@ void ARRHUD::DrawMenu()
 	for (int32 i = 0; i < NumItems; ++i)
 	{
 		const float Y = ListY + i * ItemH;
-		const float Stagger = Fade(T, 0.35 + i * 0.09, 0.7);
+		const float Stagger = Fe_Fade(T, 0.35 + i * 0.09, 0.7);
 		if (bTop && Hit(ML, Y, ListW, ItemH))
 		{
 			if (MenuSel != i) { MenuSel = i; }
@@ -247,7 +256,7 @@ void ARRHUD::DrawMenu()
 		if (bSel)
 		{
 			HGrad(ML - U(14.0f), Y + U(6.0f), ListW, ItemH - U(12.0f), FLinearColor(1.0f, 0.62f, 0.16f, 0.20f * A), FLinearColor(1.0f, 0.62f, 0.16f, 0.0f), 24);
-			Box(ML - U(14.0f), Y + U(6.0f), U(5.0f), ItemH - U(12.0f), WithA(Amber, A));
+			Box(ML - U(14.0f), Y + U(6.0f), U(5.0f), ItemH - U(12.0f), Fe_WithA(Fe_Amber, A));
 		}
 		const FLinearColor Col = bSel ? FLinearColor(1.0f, 1.0f, 1.0f, A) : FLinearColor(0.62f, 0.65f, 0.69f, A * 0.9f);
 		Txt(Items[i], ML + Slide, Y + U(12.0f), 46.0f, Col, 0.0f, 5.0f);
@@ -297,10 +306,10 @@ void ARRHUD::DrawMenu()
 void ARRHUD::DrawSettingsPanel(float PX, float PY, float PW, float PH)
 {
 	const double T = Now - ScreenStart;
-	const float In = Fade(T, 0.0, 0.5);
+	const float In = Fe_Fade(T, 0.0, 0.5);
 	Box(PX, PY, PW, PH, FLinearColor(0.02f, 0.025f, 0.03f, 0.80f * In));
 	Frame(PX, PY, PW, PH, FMath::Max(1.0f, U(1.5f)), FLinearColor(0.7f, 0.74f, 0.8f, 0.35f * In));
-	Brackets(PX - U(6.0f), PY - U(6.0f), PW + U(12.0f), PH + U(12.0f), U(26.0f), FMath::Max(2.0f, U(2.5f)), WithA(Amber, In));
+	Brackets(PX - U(6.0f), PY - U(6.0f), PW + U(12.0f), PH + U(12.0f), U(26.0f), FMath::Max(2.0f, U(2.5f)), Fe_WithA(Fe_Amber, In));
 	Txt(TEXT("SETTINGS"), PX + U(40.0f), PY + U(30.0f), 44.0f, FLinearColor(1, 1, 1, In), 0.0f, 8.0f);
 	Box(PX + U(40.0f), PY + U(92.0f), PW - U(80.0f), 1.0f, FLinearColor(1, 1, 1, 0.25f * In));
 
@@ -362,13 +371,13 @@ void ARRHUD::DrawSettingsPanel(float PX, float PY, float PW, float PH)
 		if (bSel)
 		{
 			HGrad(PX + U(20.0f), Y, PW - U(40.0f), RowH - U(8.0f), FLinearColor(1.0f, 0.62f, 0.16f, 0.16f * In), FLinearColor(1.0f, 0.62f, 0.16f, 0.0f), 20);
-			Box(PX + U(20.0f), Y, U(4.0f), RowH - U(8.0f), WithA(Amber, In));
+			Box(PX + U(20.0f), Y, U(4.0f), RowH - U(8.0f), Fe_WithA(Fe_Amber, In));
 		}
 		const FLinearColor C = bSel ? FLinearColor(1, 1, 1, In) : FLinearColor(0.66f, 0.69f, 0.73f, In);
 		Txt(Label, PX + U(48.0f), Y + U(16.0f), 32.0f, C, 0.0f, 3.0f);
 		if (i < Rows - 1)
 		{
-			Txt(FString::Printf(TEXT("<  %s  >"), *Value), PX + PW - U(48.0f), Y + U(16.0f), 32.0f, bSel ? WithA(Amber, In) : C, 1.0f, 2.0f);
+			Txt(FString::Printf(TEXT("<  %s  >"), *Value), PX + PW - U(48.0f), Y + U(16.0f), 32.0f, bSel ? Fe_WithA(Fe_Amber, In) : C, 1.0f, 2.0f);
 		}
 
 		int32 D = (bSel ? Delta : 0) + RowDelta;
@@ -416,10 +425,10 @@ void ARRHUD::DrawSettingsPanel(float PX, float PY, float PW, float PH)
 void ARRHUD::DrawBlockchainPanel(float PX, float PY, float PW, float PH)
 {
 	const double T = Now - ScreenStart;
-	const float In = Fade(T, 0.0, 0.5);
+	const float In = Fe_Fade(T, 0.0, 0.5);
 	Box(PX, PY, PW, PH, FLinearColor(0.02f, 0.025f, 0.03f, 0.80f * In));
 	Frame(PX, PY, PW, PH, FMath::Max(1.0f, U(1.5f)), FLinearColor(0.7f, 0.74f, 0.8f, 0.35f * In));
-	Brackets(PX - U(6.0f), PY - U(6.0f), PW + U(12.0f), PH + U(12.0f), U(26.0f), FMath::Max(2.0f, U(2.5f)), WithA(Amber, In));
+	Brackets(PX - U(6.0f), PY - U(6.0f), PW + U(12.0f), PH + U(12.0f), U(26.0f), FMath::Max(2.0f, U(2.5f)), Fe_WithA(Fe_Amber, In));
 	Txt(TEXT("BLOCKCHAIN"), PX + U(40.0f), PY + U(30.0f), 44.0f, FLinearColor(1, 1, 1, In), 0.0f, 8.0f);
 	Box(PX + U(40.0f), PY + U(92.0f), PW - U(80.0f), 1.0f, FLinearColor(1, 1, 1, 0.25f * In));
 
@@ -437,7 +446,7 @@ void ARRHUD::DrawBlockchainPanel(float PX, float PY, float PW, float PH)
 	Info(TEXT("NETWORK"), TEXT("SUI TESTNET"), FLinearColor(0.80f, 0.85f, 0.95f, In));
 	Info(TEXT("STATUS"), bConn ? TEXT("CONNECTED") : TEXT("NOT CONNECTED"), bConn ? FLinearColor(0.3f, 0.95f, 0.55f, In) : FLinearColor(0.95f, 0.38f, 0.35f, In));
 	Info(TEXT("WALLET"), bConn ? ShortAddress(Sui->GetWalletAddress()) : FString(TEXT("-")), FLinearColor(0.85f, 0.88f, 0.92f, In));
-	Info(TEXT("CREDITS"), bConn ? FString::FromInt(Sui->GetCredits()) : FString(TEXT("-")), WithA(Amber, In));
+	Info(TEXT("CREDITS"), bConn ? FString::FromInt(Sui->GetCredits()) : FString(TEXT("-")), Fe_WithA(Fe_Amber, In));
 	Info(TEXT("GEAR NFTS"), bConn ? FString::FromInt(Sui->GetOwnedGear().Num()) : FString(TEXT("-")), FLinearColor(0.45f, 0.85f, 1.0f, In));
 
 	// actions
@@ -463,7 +472,7 @@ void ARRHUD::DrawBlockchainPanel(float PX, float PY, float PW, float PH)
 		if (bSel)
 		{
 			HGrad(PX + U(20.0f), RY, PW - U(40.0f), RowH - U(6.0f), FLinearColor(1.0f, 0.62f, 0.16f, 0.16f * In), FLinearColor(1.0f, 0.62f, 0.16f, 0.0f), 20);
-			Box(PX + U(20.0f), RY, U(4.0f), RowH - U(6.0f), WithA(Amber, In));
+			Box(PX + U(20.0f), RY, U(4.0f), RowH - U(6.0f), Fe_WithA(Fe_Amber, In));
 		}
 		const bool bDisabled = (i == 2 && !bConn);
 		FLinearColor C = bSel ? FLinearColor(1, 1, 1, In) : FLinearColor(0.66f, 0.69f, 0.73f, In);
@@ -511,7 +520,7 @@ void ARRHUD::DrawLoading()
 		DrawSlide(Idx, 1.0f, Phase);
 		if (Phase > 0.78f)
 		{
-			DrawSlide(Idx + 1, Ease((Phase - 0.78f) / 0.22f), 0.0f);
+			DrawSlide(Idx + 1, Fe_Ease((Phase - 0.78f) / 0.22f), 0.0f);
 		}
 	}
 	else
@@ -524,8 +533,8 @@ void ARRHUD::DrawLoading()
 	Embers(0.5f);
 
 	// chapter card on the picture
-	const float CardA = Fade(T, 0.6, 1.0);
-	Txt(TEXT("CHAPTER 01"), CanvasW * 0.06f, ImgH - U(122.0f), 24.0f, WithA(Amber, CardA), 0.0f, 8.0f);
+	const float CardA = Fe_Fade(T, 0.6, 1.0);
+	Txt(TEXT("CHAPTER 01"), CanvasW * 0.06f, ImgH - U(122.0f), 24.0f, Fe_WithA(Fe_Amber, CardA), 0.0f, 8.0f);
 	Txt(TEXT("THE ARENA"), CanvasW * 0.06f, ImgH - U(92.0f), 58.0f, FLinearColor(1, 1, 1, CardA), 0.0f, 10.0f);
 
 	// the black bar
@@ -542,7 +551,7 @@ void ARRHUD::DrawLoading()
 	const float TrackH = FMath::Max(2.0f, U(3.0f));
 	Box(0.0f, ImgH, CanvasW, TrackH, FLinearColor(1, 1, 1, 0.12f));
 	const float FillW = CanvasW * LoadProgress;
-	Box(0.0f, ImgH, FillW, TrackH, Amber);
+	Box(0.0f, ImgH, FillW, TrackH, Fe_Amber);
 	Box(FillW - U(90.0f), ImgH, U(90.0f), TrackH, FLinearColor(1.0f, 0.85f, 0.5f, 0.9f));
 	HGrad(FMath::Max(0.0f, FillW - U(240.0f)), ImgH - U(10.0f), FMath::Min(U(240.0f), FillW), U(10.0f), FLinearColor(1.0f, 0.62f, 0.16f, 0.0f), FLinearColor(1.0f, 0.62f, 0.16f, 0.35f), 16);
 
@@ -563,14 +572,14 @@ void ARRHUD::DrawLoading()
 	const double TipLen = 4.2;
 	const int32 TipIdx = (int32)(T / TipLen) % NumTips;
 	const float TipPhase = (float)(T / TipLen - FMath::FloorToDouble(T / TipLen));
-	const float TipA = FMath::Min(Ease(TipPhase / 0.12f), 1.0f - Ease((TipPhase - 0.88f) / 0.12f));
+	const float TipA = FMath::Min(Fe_Ease(TipPhase / 0.12f), 1.0f - Fe_Ease((TipPhase - 0.88f) / 0.12f));
 	Txt(FString::Printf(TEXT("TIP   %s"), Tips[TipIdx]), BX, ImgH + U(80.0f), 24.0f, FLinearColor(0.72f, 0.75f, 0.80f, TipA), 0.0f, 1.5f);
 
-	Txt(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(LoadProgress * 100.0f)), CanvasW - CanvasW * 0.06f, ImgH + U(26.0f), 34.0f, WithA(Amber, 1.0f), 1.0f, 4.0f);
+	Txt(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(LoadProgress * 100.0f)), CanvasW - CanvasW * 0.06f, ImgH + U(26.0f), 34.0f, Fe_WithA(Fe_Amber, 1.0f), 1.0f, 4.0f);
 	Txt(TEXT("KAIZEEN"), CanvasW - CanvasW * 0.06f, ImgH + U(80.0f), 24.0f, FLinearColor(0.5f, 0.53f, 0.57f, 1.0f), 1.0f, 12.0f);
 
 	// fade in at start, fade out at the end
-	const float StartA = 1.0f - Fade(T, 0.0, 0.9);
+	const float StartA = 1.0f - Fe_Fade(T, 0.0, 0.9);
 	Box(0.0f, 0.0f, CanvasW, CanvasH, FLinearColor(0, 0, 0, StartA));
 
 	if (!bLoadingExit && LoadProgress >= 0.985f && T > MinSeconds - 0.2f && bReady)
@@ -580,7 +589,7 @@ void ARRHUD::DrawLoading()
 	}
 	if (bLoadingExit)
 	{
-		const float A = Fade(Now - LoadingExitStart, 0.0, 0.8);
+		const float A = Fe_Fade(Now - LoadingExitStart, 0.0, 0.8);
 		Box(0.0f, 0.0f, CanvasW, CanvasH, FLinearColor(0, 0, 0, A));
 		if (Now - LoadingExitStart >= 0.85)
 		{

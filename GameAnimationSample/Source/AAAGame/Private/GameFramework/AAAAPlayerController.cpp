@@ -69,6 +69,9 @@ void AAAAAPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::LeftBracket, IE_Pressed, this, &AAAAAPlayerController::CycleLockOnLeft);
 	InputComponent->BindKey(EKeys::RightBracket, IE_Pressed, this, &AAAAAPlayerController::CycleLockOnRight);
 	InputComponent->BindKey(EKeys::R, IE_Pressed, this, &AAAAAPlayerController::OnDrawSheathWeapon);
+	InputComponent->BindKey(EKeys::One, IE_Pressed, this, &AAAAAPlayerController::OnDrawSheathWeapon);
+	InputComponent->BindKey(EKeys::MouseScrollUp, IE_Pressed, this, &AAAAAPlayerController::OnDrawSheathWeapon);
+	InputComponent->BindKey(EKeys::MouseScrollDown, IE_Pressed, this, &AAAAAPlayerController::OnDrawSheathWeapon);
 	InputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &AAAAAPlayerController::OnAttackAction);
 	InputComponent->BindKey(EKeys::F, IE_Pressed, this, &AAAAAPlayerController::OnHeavyAttackAction);
 	InputComponent->BindKey(EKeys::LeftShift, IE_Pressed, this, &AAAAAPlayerController::OnDodgeAction);
@@ -85,11 +88,6 @@ void AAAAAPlayerController::OnDrawSheathWeapon()
 		if (UAAACombatComponent* CombatComp = ControlledPawn->FindComponentByClass<UAAACombatComponent>())
 		{
 			CombatComp->ToggleWeaponDraw();
-			if (GEngine)
-			{
-				FString StateStr = CombatComp->IsWeaponDrawn() ? TEXT("DRAWN (In Hand)") : TEXT("SHEATHED (On Back)");
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, FString::Printf(TEXT("Weapon Stance: %s"), *StateStr));
-			}
 		}
 	}
 }

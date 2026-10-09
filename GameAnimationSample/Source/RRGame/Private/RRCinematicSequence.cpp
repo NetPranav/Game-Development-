@@ -7,7 +7,9 @@ URRCinematicSequence::URRCinematicSequence()
 	// The player's retargeted sword animations (see Tools/editor_scripts/wire_ual2.py). Replace them in a data asset to change the scene.
 	DefenderBlockAnim = FRRCineAnim(TEXT("/Game/RR/Player/AM_P_SwordBlock.AM_P_SwordBlock"));
 	DefenderImpactAnim = FRRCineAnim(TEXT("/Game/RR/Player/AM_P_Knockback.AM_P_Knockback"));
-	DefenderSlideAnim = FRRCineAnim(TEXT("/Game/RR/Player/AM_P_Slide.AM_P_Slide"));
+	// braced sword-guard pose while being pushed back (the UAL2 "Slide" is a baseball slide on the ground, wrong silhouette)
+	DefenderSlideAnim = FRRCineAnim(TEXT("/Game/RR/Player/AM_P_SwordBlock.AM_P_SwordBlock"));
+	DefenderSlideAnim.PlayRate = 0.6f;
 	DefenderStopAnim = FRRCineAnim(TEXT("/Game/RR/Player/AM_P_GuardBreak.AM_P_GuardBreak"));
 
 	const TCHAR* Sparks = TEXT("/Game/ParagonGreystone/FX/Particles/Greystone/Abilities/Primary/FX/P_Greystone_Primary_Sparks.P_Greystone_Primary_Sparks");

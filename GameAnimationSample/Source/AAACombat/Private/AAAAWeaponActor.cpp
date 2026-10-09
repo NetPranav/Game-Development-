@@ -70,11 +70,31 @@ void AAAAWeaponActor::InitializeWeapon(UAAAWeaponSettings* InWeaponSettings)
 		// Imported weapons rarely have their pivot at the grip. If the mesh has a "Grip" socket, shift the mesh so that
 		// the socket sits at this actor's origin (= the hand socket it gets attached to).
 		FVector GripOffset = FVector::ZeroVector;
+		FRotator MeshExtraRot = FRotator::ZeroRotator;
 		if (const UStaticMeshSocket* Grip = WeaponSettings->Visuals.StaticMesh->FindSocket(FName("Grip")))
 		{
-			GripOffset = -Grip->RelativeLocation;
+			FTransform GripTransform(Grip->RelativeRotation, Grip->RelativeLocation, FVector::OneVector);
+			FTransform InvGrip = GripTransform.Inverse();
+			StaticMeshComponent->SetRelativeLocationAndRotation(InvGrip.GetLocation(), InvGrip.Rotator());
 		}
-		StaticMeshComponent->SetRelativeLocation(GripOffset);
+		else
+		{
+			// Dynamic fallback: detect weapon orientation from bounding box
+			FBoxSphereBounds Bounds = WeaponSettings->Visuals.StaticMesh->GetBounds();
+			if (Bounds.BoxExtent.X > Bounds.BoxExtent.Z && Bounds.BoxExtent.X > Bounds.BoxExtent.Y)
+			{
+				// Sword running along X axis (e.g. SM_LongSword): grip around X = -35, blade extends to +X.
+				// Pitch -90 rotates +X to +Z (blade upwards out of hand).
+				GripOffset = FVector(35.0f, 0.0f, 0.0f);
+				MeshExtraRot = FRotator(-90.0f, 0.0f, 0.0f);
+			}
+			else if (Bounds.BoxExtent.Z > Bounds.BoxExtent.X && Bounds.BoxExtent.Z > Bounds.BoxExtent.Y)
+			{
+				GripOffset = FVector(0.0f, 0.0f, -130.0f);
+				MeshExtraRot = FRotator(180.0f, 0.0f, 0.0f);
+			}
+			StaticMeshComponent->SetRelativeLocationAndRotation(GripOffset, MeshExtraRot);
+		}
 		StaticMeshComponent->SetVisibility(true);
 		SkeletalMeshComponent->SetVisibility(false);
 	}

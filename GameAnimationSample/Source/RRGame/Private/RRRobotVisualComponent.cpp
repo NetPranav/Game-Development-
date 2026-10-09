@@ -3,6 +3,7 @@
 #include "RRRobotVisualComponent.h"
 #include "RRGame.h"
 #include "RRSettings.h"
+#include "RRLoadoutComponent.h"
 #include "AAACombatComponent.h"
 #include "Components/ChildActorComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -100,6 +101,11 @@ void URRRobotVisualComponent::Apply()
 	if (UAAACombatComponent* Combat = Owner->FindComponentByClass<UAAACombatComponent>())
 	{
 		Combat->RefreshWeaponAttachment();
+	}
+
+	if (URRLoadoutComponent* Loadout = Owner->FindComponentByClass<URRLoadoutComponent>())
+	{
+		Loadout->UpdateShieldAttachment();
 	}
 
 	UE_LOG(LogRR, Log, TEXT("Player visual set to %s (master mesh %s hidden)"), *GetNameSafe(ClassToUse), *GetNameSafe(MasterMesh));

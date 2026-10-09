@@ -34,3 +34,5 @@ P10d done: RE8 damage screen, no player health bar, combat montages fixed
 P11a done: ARRBoss core mechanics, segments, posture, deathblow, and debug commands
 P11c done: Implemented Sekiro-style Boss HUD (Canvas), added Boss getters, and finalized native boss gameplay tags.
 P11b done: Implemented Mikiri counter, Perilous attacks, and ARRBossAIController
+P13a done: Sword vanishes when holstered (no sword on the back)
+P13c done: Audio director for music states and combat SFX (RRAudioDirector)

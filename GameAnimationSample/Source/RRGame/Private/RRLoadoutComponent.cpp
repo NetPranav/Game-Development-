@@ -16,6 +16,9 @@
 
 #include "RRSuiBridge.h"
 #include "Engine/GameInstance.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/ChildActorComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 URRLoadoutComponent::URRLoadoutComponent()
 {
@@ -46,6 +49,7 @@ TArray<FRRInventoryItem> URRLoadoutComponent::BuildInventory() const
 	AddLocal(ERRGearKind::Weapon, TEXT("local_w1"), TEXT("Rustic Blade"), 12, 0);
 	AddLocal(ERRGearKind::Weapon, TEXT("local_w2"), TEXT("Dark Sword I"), 18, 0);
 	AddLocal(ERRGearKind::Weapon, TEXT("local_w3"), TEXT("Dark Sword II"), 24, 1);
+	AddLocal(ERRGearKind::Weapon, TEXT("local_w4"), TEXT("Fab Longsword"), 34, 2);
 	AddLocal(ERRGearKind::Armor, TEXT("local_a1"), TEXT("Padded Frame"), 8, 0);
 	AddLocal(ERRGearKind::Armor, TEXT("local_a2"), TEXT("Plated Chassis"), 20, 0);
 	AddLocal(ERRGearKind::Ability, TEXT("local_ab1"), TEXT("Overdrive"), 15, 0);
@@ -127,15 +131,22 @@ void URRLoadoutComponent::Equip(const FRRGearData& GearData)
 				{
 					UAAAWeaponSettings* RuntimeSettings = DuplicateObject<UAAAWeaponSettings>(BaseSettings, this);
 					
-					int32 Variant = (GearData.Seed % 2);
-					if (GearData.Id.StartsWith(TEXT("local_")))
+					int32 Variant = 0;
+					if (GearData.Name.Contains(TEXT("Longsword")) || GearData.Name == TEXT("Fab Longsword") || GearData.Id == TEXT("local_w4"))
 					{
-						if (GearData.Name == TEXT("Rustic Blade")) Variant = 0;
-						else if (GearData.Name == TEXT("Dark Sword II")) Variant = 1;
+						Variant = 2;
+					}
+					else if (GearData.Name == TEXT("Dark Sword II"))
+					{
+						Variant = 1;
+					}
+					else if (GearData.Name == TEXT("Rustic Blade"))
+					{
+						Variant = 0;
 					}
 					
-					// Apply Combat BaseDamage formula: 12 + Damage * 0.5
-					RuntimeSettings->Combat.BaseDamage = 12.0f + (GearData.Damage * 0.5f);
+					// Apply Combat BaseDamage formula: 14 + Damage * 0.6 (Fab Longsword 45 damage = 41.0 base damage!)
+					RuntimeSettings->Combat.BaseDamage = 14.0f + (GearData.Damage * 0.6f);
 					
 					const URRSettings* Settings = URRSettings::Get();
 					if (Settings && Settings->SwordMeshes.IsValidIndex(Variant))
@@ -143,6 +154,96 @@ void URRLoadoutComponent::Equip(const FRRGearData& GearData)
 						if (UStaticMesh* Mesh = Settings->SwordMeshes[Variant].LoadSynchronous())
 						{
 							RuntimeSettings->Visuals.StaticMesh = Mesh;
+						}
+					}
+
+					// Ensure clean 3-hit grounded combo animations on RuntimeSettings (Click 1 = Slash 1, Click 2 = Slash 2, Click 3 = Finisher Combo)
+					{
+						TArray<UAnimMontage*> LightCombos;
+						for (const TCHAR* Path : {
+							TEXT("/Game/RR/Player/AM_P_Pro_L1.AM_P_Pro_L1"),
+							TEXT("/Game/RR/Player/AM_P_Pro_L2.AM_P_Pro_L2"),
+							TEXT("/Game/RR/Player/AM_P_Pro_L3.AM_P_Pro_L3")
+						})
+						{
+							if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
+							{
+								LightCombos.Add(M);
+							}
+						}
+						// Fallback if Pro animations not yet created
+						if (LightCombos.Num() == 0)
+						{
+							for (const TCHAR* Path : {
+								TEXT("/Game/RR/Player/AM_P_UAL_L1.AM_P_UAL_L1"),
+								TEXT("/Game/RR/Player/AM_P_UAL_L2.AM_P_UAL_L2"),
+								TEXT("/Game/RR/Player/AM_P_UAL_L3.AM_P_UAL_L3")
+							})
+							{
+								if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
+								{
+									LightCombos.Add(M);
+								}
+							}
+						}
+						if (LightCombos.Num() > 0)
+						{
+							RuntimeSettings->Animations.LightAttackCombos = LightCombos;
+						}
+					}
+
+					// Ensure heavy attack combos
+					{
+						TArray<UAnimMontage*> HeavyCombos;
+						for (const TCHAR* Path : {
+							TEXT("/Game/RR/Player/AM_P_Pro_H1.AM_P_Pro_H1"),
+							TEXT("/Game/RR/Player/AM_P_Pro_H2.AM_P_Pro_H2"),
+							TEXT("/Game/RR/Player/AM_P_Pro_Kick.AM_P_Pro_Kick"),
+							TEXT("/Game/RR/Player/AM_P_Pro_PowerUp.AM_P_Pro_PowerUp")
+						})
+						{
+							if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
+							{
+								HeavyCombos.Add(M);
+							}
+						}
+						if (HeavyCombos.Num() == 0)
+						{
+							for (const TCHAR* Path : {
+								TEXT("/Game/RR/Player/AM_P_SwordDash.AM_P_SwordDash"),
+								TEXT("/Game/RR/Player/AM_P_Heavy2.AM_P_Heavy2")
+							})
+							{
+								if (UAnimMontage* M = LoadObject<UAnimMontage>(nullptr, Path))
+								{
+									HeavyCombos.Add(M);
+								}
+							}
+						}
+						if (HeavyCombos.Num() > 0)
+						{
+							RuntimeSettings->Animations.HeavyAttackCombos = HeavyCombos;
+						}
+					}
+
+					// Ensure block montage
+					if (UAnimMontage* ProBlock = LoadObject<UAnimMontage>(nullptr, TEXT("/Game/RR/Player/AM_P_Pro_Block.AM_P_Pro_Block")))
+					{
+						if (ProBlock->CompositeSections.Num() > 0)
+						{
+							ProBlock->CompositeSections[0].NextSectionName = ProBlock->CompositeSections[0].SectionName;
+						}
+						RuntimeSettings->Animations.BlockMontage = ProBlock;
+					}
+					else if (!RuntimeSettings->Animations.BlockMontage)
+					{
+						if (UAnimMontage* SwordBlock = LoadObject<UAnimMontage>(nullptr, TEXT("/Game/RR/Player/AM_P_SwordBlock.AM_P_SwordBlock")))
+						{
+							if (SwordBlock->CompositeSections.Num() > 0)
+							{
+								SwordBlock->CompositeSections[0].NextSectionName = SwordBlock->CompositeSections[0].SectionName;
+							}
+							RuntimeSettings->Animations.BlockMontage = SwordBlock;
 						}
 					}
 					
@@ -172,7 +273,57 @@ void URRLoadoutComponent::Equip(const FRRGearData& GearData)
 	}
 
 	ApplyStats();
+	UpdateShieldAttachment();
 	OnLoadoutChanged.Broadcast();
+}
+
+void URRLoadoutComponent::UpdateShieldAttachment()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner) return;
+
+	USkeletalMeshComponent* TargetMesh = nullptr;
+	TInlineComponentArray<UChildActorComponent*> Children;
+	Owner->GetComponents(Children);
+	for (UChildActorComponent* Child : Children)
+	{
+		if (Child && Child->GetName().Contains(TEXT("VisualOverride")))
+		{
+			if (AActor* Display = Child->GetChildActor())
+			{
+				USkeletalMeshComponent* DisplayMesh = Display->FindComponentByClass<USkeletalMeshComponent>();
+				if (DisplayMesh && DisplayMesh->GetSkeletalMeshAsset())
+				{
+					TargetMesh = DisplayMesh;
+					break;
+				}
+			}
+		}
+	}
+	if (!TargetMesh)
+	{
+		TargetMesh = Owner->FindComponentByClass<USkeletalMeshComponent>();
+	}
+	if (!TargetMesh) return;
+
+	const URRSettings* Settings = URRSettings::Get();
+	if (Settings)
+	{
+		if (UStaticMesh* ShieldSM = Settings->ShieldMesh.LoadSynchronous())
+		{
+			if (!ShieldMeshComponent)
+			{
+				ShieldMeshComponent = NewObject<UStaticMeshComponent>(Owner, TEXT("RRPlayerShieldMesh"));
+				ShieldMeshComponent->RegisterComponent();
+				ShieldMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+			ShieldMeshComponent->SetStaticMesh(ShieldSM);
+			ShieldMeshComponent->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("hand_l"));
+			ShieldMeshComponent->SetRelativeLocationAndRotation(FVector(-3.0f, -4.0f, 2.0f), FRotator(0.0f, 90.0f, 0.0f));
+			ShieldMeshComponent->SetRelativeScale3D(FVector(0.105f, 0.105f, 0.105f));
+			ShieldMeshComponent->SetHiddenInGame(false);
+		}
+	}
 }
 
 void URRLoadoutComponent::Unequip(ERRGearKind Kind)

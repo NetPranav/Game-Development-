@@ -9,10 +9,10 @@
 
 namespace
 {
-	float Ease(float T) { T = FMath::Clamp(T, 0.0f, 1.0f); return T * T * (3.0f - 2.0f * T); }
-	float Fade(double T, double Start, double Dur) { return Ease((float)((T - Start) / FMath::Max(0.0001, Dur))); }
-	FString Num(int32 V) { return FText::AsNumber(V).ToString(); }
-	FString Clock(float Seconds)
+	float Df_Ease(float T) { T = FMath::Clamp(T, 0.0f, 1.0f); return T * T * (3.0f - 2.0f * T); }
+	float Df_Fade(double T, double Start, double Dur) { return Df_Ease((float)((T - Start) / FMath::Max(0.0001, Dur))); }
+	FString Df_Num(int32 V) { return FText::AsNumber(V).ToString(); }
+	FString Df_Clock(float Seconds)
 	{
 		const int32 S = FMath::Max(0, FMath::FloorToInt(Seconds));
 		return FString::Printf(TEXT("%02d:%02d"), S / 60, S % 60);
@@ -81,13 +81,13 @@ void ARRHUD::DrawDefeat()
 	const float CX = CanvasW * 0.5f;
 
 	// 1) the whole screen fades to black
-	const float Black = Fade(T, TFadeStart, TFadeDur);
+	const float Black = Df_Fade(T, TFadeStart, TFadeDur);
 	Box(0.0f, 0.0f, CanvasW, CanvasH, FLinearColor(0.0f, 0.0f, 0.0f, Black));
 	if (T < TTitle - 0.3) return;
 	Vignette(0.5f * Black);
 
 	// 2) DEFEAT: white letters that settle from wide tracking
-	const float TitleIn = Fade(T, TTitle, 1.5);
+	const float TitleIn = Df_Fade(T, TTitle, 1.5);
 	const float TitleY = CanvasH * 0.085f;
 	const float Tracking = FMath::Lerp(80.0f, 28.0f, TitleIn);
 	const FString Title = TEXT("DEFEAT");
@@ -98,10 +98,10 @@ void ARRHUD::DrawDefeat()
 	}
 	Txt(Title, CX, TitleY, 176.0f, FLinearColor(1.0f, 1.0f, 1.0f, TitleIn), 0.5f, Tracking);
 
-	const float RuleW = U(620.0f) * Fade(T, TTitle + 0.7, 1.0);
+	const float RuleW = U(620.0f) * Df_Fade(T, TTitle + 0.7, 1.0);
 	const float RuleY = TitleY + U(205.0f);
 	Box(CX - RuleW * 0.5f, RuleY, RuleW, FMath::Max(2.0f, U(2.5f)), FLinearColor(0.88f, 0.12f, 0.14f, TitleIn));
-	Txt(TEXT("CHASSIS OFFLINE"), CX, RuleY + U(18.0f), 24.0f, FLinearColor(0.62f, 0.65f, 0.7f, Fade(T, TTitle + 1.0, 1.0)), 0.5f, 14.0f);
+	Txt(TEXT("CHASSIS OFFLINE"), CX, RuleY + U(18.0f), 24.0f, FLinearColor(0.62f, 0.65f, 0.7f, Df_Fade(T, TTitle + 1.0, 1.0)), 0.5f, 14.0f);
 
 	// 3) statistics, row by row
 	const float ColW = U(780.0f);
@@ -112,23 +112,23 @@ void ARRHUD::DrawDefeat()
 
 	struct FRow { FString Label; FString Value; double Start; float Numeric; bool bNumber; };
 	const FRow Rows[5] = {
-		{ TEXT("DAMAGE DEALT"), Num(FMath::RoundToInt(S.DamageDealt)), TStats + 0 * TRowStep, S.DamageDealt, true },
-		{ TEXT("ENEMIES DEFEATED"), Num(S.Kills), TStats + 1 * TRowStep, (float)S.Kills, true },
-		{ TEXT("DAMAGE TAKEN"), Num(FMath::RoundToInt(S.DamageTaken)), TStats + 2 * TRowStep, S.DamageTaken, true },
-		{ TEXT("TIME SURVIVED"), Clock(S.TimeSeconds), TStats + 3 * TRowStep, 0.0f, false },
+		{ TEXT("DAMAGE DEALT"), Df_Num(FMath::RoundToInt(S.DamageDealt)), TStats + 0 * TRowStep, S.DamageDealt, true },
+		{ TEXT("ENEMIES DEFEATED"), Df_Num(S.Kills), TStats + 1 * TRowStep, (float)S.Kills, true },
+		{ TEXT("DAMAGE TAKEN"), Df_Num(FMath::RoundToInt(S.DamageTaken)), TStats + 2 * TRowStep, S.DamageTaken, true },
+		{ TEXT("TIME SURVIVED"), Df_Clock(S.TimeSeconds), TStats + 3 * TRowStep, 0.0f, false },
 		{ TEXT("WEAPON"), S.WeaponName.IsEmpty() ? FString(TEXT("-")) : S.WeaponName.ToUpper(), TStats + 4 * TRowStep, 0.0f, false },
 	};
 	for (int32 i = 0; i < 5; ++i)
 	{
 		const FRow& R = Rows[i];
-		const float A = Fade(T, R.Start, 0.45);
+		const float A = Df_Fade(T, R.Start, 0.45);
 		if (A <= 0.0f) { Y += RowH; continue; }
 		const float Slide = (1.0f - A) * U(34.0f);
 		FString Val = R.Value;
 		if (R.bNumber)
 		{
-			const float Count = Fade(T, R.Start + 0.1, 1.1);
-			Val = Num(FMath::RoundToInt(R.Numeric * Count));
+			const float Count = Df_Fade(T, R.Start + 0.1, 1.1);
+			Val = Df_Num(FMath::RoundToInt(R.Numeric * Count));
 		}
 		Txt(R.Label, LX - Slide, Y, 26.0f, FLinearColor(0.58f, 0.61f, 0.66f, A), 0.0f, 5.0f);
 		Txt(Val, RX + Slide, Y - U(2.0f), 30.0f, FLinearColor(1.0f, 1.0f, 1.0f, A), 1.0f, 2.0f);
@@ -137,7 +137,7 @@ void ARRHUD::DrawDefeat()
 	}
 
 	// 4) what was earned
-	const float EA = Fade(T, TEarned, 0.7);
+	const float EA = Df_Fade(T, TEarned, 0.7);
 	if (EA > 0.0f)
 	{
 		const float BoxY = Y + U(14.0f);
@@ -145,16 +145,16 @@ void ARRHUD::DrawDefeat()
 		HGrad(LX, BoxY, ColW, BoxH, FLinearColor(1.0f, 0.62f, 0.16f, 0.16f * EA), FLinearColor(1.0f, 0.62f, 0.16f, 0.02f * EA), 24);
 		Box(LX, BoxY, U(5.0f), BoxH, FLinearColor(1.0f, 0.62f, 0.16f, EA));
 		Txt(TEXT("SCRAP EARNED"), LX + U(30.0f), BoxY + U(18.0f), 24.0f, FLinearColor(1.0f, 0.78f, 0.45f, EA), 0.0f, 6.0f);
-		Txt(FString::Printf(TEXT("SESSION TOTAL  %s"), *Num(S.SessionScrap)), LX + U(30.0f), BoxY + U(66.0f), 20.0f, FLinearColor(0.7f, 0.65f, 0.55f, EA), 0.0f, 3.0f);
-		const float Count = Fade(T, TEarned + 0.2, 1.3);
-		Txt(FString::Printf(TEXT("+ %s"), *Num(FMath::RoundToInt(S.Scrap * Count))), RX - U(24.0f), BoxY + U(14.0f), 78.0f, FLinearColor(1.0f, 0.68f, 0.2f, EA), 1.0f, 3.0f);
+		Txt(FString::Printf(TEXT("SESSION TOTAL  %s"), *Df_Num(S.SessionScrap)), LX + U(30.0f), BoxY + U(66.0f), 20.0f, FLinearColor(0.7f, 0.65f, 0.55f, EA), 0.0f, 3.0f);
+		const float Count = Df_Fade(T, TEarned + 0.2, 1.3);
+		Txt(FString::Printf(TEXT("+ %s"), *Df_Num(FMath::RoundToInt(S.Scrap * Count))), RX - U(24.0f), BoxY + U(14.0f), 78.0f, FLinearColor(1.0f, 0.68f, 0.2f, EA), 1.0f, 3.0f);
 	}
 
 	// 5) respawn countdown (Enter / click skips)
 	const double TR = T - TRespawnBar;
 	if (TR > 0.0)
 	{
-		const float RA = Fade(TR, 0.0, 0.6);
+		const float RA = Df_Fade(TR, 0.0, 0.6);
 		const float BarY = CanvasH - U(112.0f);
 		const float BarW = U(520.0f);
 		const float Prog = FMath::Clamp((float)(TR / TRespawnDur), 0.0f, 1.0f);

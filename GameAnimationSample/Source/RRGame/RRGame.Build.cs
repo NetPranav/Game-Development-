@@ -6,7 +6,7 @@ public class RRGame : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HTTP", "Json", "JsonUtilities", "UMG", "Slate", "SlateCore", "GameplayTags", "GameplayAbilities", "AIModule", "NavigationSystem", "DeveloperSettings", "ApplicationCore", "RenderCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HTTP", "Json", "JsonUtilities", "UMG", "Slate", "SlateCore", "GameplayTags", "GameplayAbilities", "AIModule", "NavigationSystem", "DeveloperSettings", "ApplicationCore", "RenderCore", "MediaAssets" });
 		
 		PrivateDependencyModuleNames.AddRange(new string[] { "AAACore", "AAACharacter", "AAACombat", "AAAGame", "AAAAI", "AAAItems", "AAAAbility" });
 	}

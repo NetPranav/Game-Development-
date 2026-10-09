@@ -104,13 +104,13 @@ public:
 	int32 HealthSegments = 2;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
-	float SegmentMaxHealth = 260.0f;
+	float SegmentMaxHealth = 650.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
-	float MaxPosture = 120.0f;
+	float MaxPosture = 240.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
-	float PostureRegenDelay = 2.5f;
+	float PostureRegenDelay = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
 	float StaggerSeconds = 4.0f;
@@ -172,6 +172,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "RR|Boss")
 	FText GetBossName() const { return BossName; }
 
+	/** True while it lies on the ground / rises / taunts after losing a health segment (AI paused, invulnerable). */
+	UFUNCTION(BlueprintPure, Category = "RR|Boss")
+	bool IsInPhaseTransition() const { return bPhaseTransition; }
+
+	/** Plays a Greystone animation by name on the full-body slot; returns its length. */
+	float PlayBossAnim(const TCHAR* AnimName, float Rate = 1.0f, float BlendIn = 0.2f, float BlendOut = 0.3f, bool bHoldLastFrame = false);
+
+	/** Sword-point / "bring it on" taunt (match start). */
+	void PlayTaunt();
+
+	/** Seconds it stays down after a deathblow before rising. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
+	float PhaseLieSeconds = 1.6f;
+
+	/** Yaw turn rates (deg/s): normal, while winding up an attack (tracks the player), after the swing commits. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
+	float DefaultTurnRate = 300.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
+	float TrackingTurnRate = 480.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Boss")
+	float CommittedTurnRate = 45.0f;
+
 protected:
 	UFUNCTION()
 	void OnHitConfirmedHandler(AActor* Attacker, AActor* Victim, const FHitResult& Hit, bool bHeavy, float Damage);
@@ -187,6 +209,11 @@ protected:
 public:
 	void PlayAttackMontage(const FRRBossAttack& Attack);
 protected:
+
+	void BeginPhaseTransition();
+	void SetTurnRate(float YawDegPerSec);
+	bool bPhaseTransition = false;
+	FTimerHandle PhaseTimer;
 
 	FTimerHandle PostureRegenTimer;
 	void RegenPostureTick();

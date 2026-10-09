@@ -129,6 +129,18 @@ protected:
 	FTimerHandle LocomotionTimer;
 	UPROPERTY(Transient) TObjectPtr<class UAnimMontage> LocoMontage;
 	FName LocoCurrent;
+	int32 LocoDebugTick = 0;
+	float LastLocoYaw = 0.0f;
+	float TurnAccum = 0.0f;
+
+public:
+	/** Anim Blueprint slot that drives the character (Paragon: "UpperBody"). Locomotion loops, attacks and reactions use it. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "RR|Animation")
+	FName AnimSlot = TEXT("UpperBody");
+protected:
+	void DriveAnimVars();
+	FTimerHandle AnimVarsTimer;
+	bool bAnimVarsDriven = false;
 	FTimerHandle IntroStopTimer;
 	int32 IntroStopTicks = 0;
 };

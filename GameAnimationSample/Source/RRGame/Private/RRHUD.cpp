@@ -2,8 +2,10 @@
 
 #include "RRHUD.h"
 #include "RRGame.h"
+#include "HAL/IConsoleManager.h"
 #include "GameFramework/PlayerState.h"
 #include "RRGameMode.h"
+#include "RRSettings.h"
 #include "RRLoadoutComponent.h"
 #include "RRSuiBridge.h"
 #include "RREnemyDirector.h"
@@ -239,7 +241,9 @@ void ARRHUD::DrawHUD()
 	}
 
 	// The project's dev overlay (on-screen debug lines) would draw over the styled screens.
-	GEngine->bEnableOnScreenDebugMessages = (Screen == ERRScreen::Playing) && !bInventoryOpen && !bDefeatActive;
+	// Off during play too (cinematic presentation); "rr.debug.onscreen 1" brings the dev lines back.
+	static TAutoConsoleVariable<int32> CVarRROnScreen(TEXT("rr.debug.onscreen"), 0, TEXT("1 = show the project's on-screen debug messages during play"));
+	GEngine->bEnableOnScreenDebugMessages = CVarRROnScreen.GetValueOnGameThread() != 0 && (Screen == ERRScreen::Playing) && !bInventoryOpen && !bDefeatActive;
 
 	switch (Screen)
 	{
@@ -255,6 +259,9 @@ void ARRHUD::DrawHUD()
 	case ERRScreen::Loading:
 		DrawLoading();
 		return;
+	case ERRScreen::IntroVideo:
+		DrawIntroVideo();
+		return;
 	default:
 		break;
 	}
@@ -267,13 +274,17 @@ void ARRHUD::DrawHUD()
 		return;
 	}
 
+	DrawDamageFx();
 	DrawMatchHUD();
+	DrawBossHud();
+	DrawArenaPrompt();
 
 	if (bDefeatActive)
 	{
 		DrawDefeat();
 	}
 	DrawFade();
+	DrawFlash();
 	DrawCinematicBars();
 }
 
@@ -411,6 +422,9 @@ void ARRHUD::DrawMatchHUD()
 		if (State == ERRMatchState::PreMatch) StatusText = TEXT("GET READY");
 		else if (State == ERRMatchState::InProgress) StatusText = FString::Printf(TEXT("WAVES - %d REMAINING"), GM->GetEnemiesTotal() - GM->GetEnemiesKilled());
 
+		const URRSettings* RRS = URRSettings::Get();
+		const bool bArenaMode = GM->GetArena() != nullptr || (RRS && RRS->bBossMode);   // the boss bar owns the top
+		if (bArenaMode) StatusText.Reset();
 		if (!StatusText.IsEmpty() && State != ERRMatchState::Lost)
 		{
 			float TW, TH;
@@ -418,7 +432,7 @@ void ARRHUD::DrawMatchHUD()
 			DrawText(StatusText, FLinearColor::White, (Canvas->SizeX - TW)/2.f, 20.f, MedFont);
 		}
 
-		if (State != ERRMatchState::Lost)
+		if (State != ERRMatchState::Lost && !bArenaMode)
 		{
 			FString TimeText = FString::Printf(TEXT("TIME: %d"), FMath::FloorToInt(GM->GetMatchTimeSeconds()));
 			float TTW, TTH; GetTextSize(TimeText, TTW, TTH, SmallFont);

@@ -26,6 +26,14 @@
 #include "Misc/Parse.h"
 #include "RRSettings.h"
 #include "RRBoss.h"
+#include "RRNpcController.h"
+#include "RRCinematicLook.h"
+#include "RRArena.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+#include "RRAudioDirector.h"
+#include "RRBossAIController.h"
+#include "Particles/ParticleSystem.h"
 
 #if !UE_BUILD_SHIPPING
 #include "HAL/IConsoleManager.h"
@@ -46,6 +54,9 @@ void ARRGameMode::BeginPlay()
 	// Intro -> main menu -> loading screen sits in front of the first match; tests skip it with -RRSkipMenu.
 	bFrontEndPending = !FParse::Param(FCommandLine::Get(), TEXT("RRSkipMenu")) && GetNetMode() != NM_DedicatedServer;
 
+	Arena = Cast<ARRArena>(UGameplayStatics::GetActorOfClass(GetWorld(), ARRArena::StaticClass()));
+	UE_LOG(LogRR, Log, TEXT("Duel arena: %s"), Arena.IsValid() ? *Arena->GetName() : TEXT("none (boss spawns at the start point)"));
+
 	if (HasAuthority())
 	{
 		HitConfirmedHandle = FAAACombatEvents::OnHitConfirmed().AddUObject(this, &ARRGameMode::OnHitConfirmedNative);
@@ -64,6 +75,37 @@ void ARRGameMode::BeginPlay()
 			TEXT("rr.lose"), TEXT(""), FConsoleCommandDelegate::CreateLambda([this]() { OnPlayerDied(); }), ECVF_Cheat);
 		CmdRestart = IConsoleManager::Get().RegisterConsoleCommand(
 			TEXT("rr.match.restart"), TEXT(""), FConsoleCommandDelegate::CreateUObject(this, &ARRGameMode::RestartMatch), ECVF_Cheat);
+		if (!IConsoleManager::Get().FindConsoleObject(TEXT("rr.arena.enter")))
+		{
+			IConsoleManager::Get().RegisterConsoleCommand(TEXT("rr.arena.enter"), TEXT("rr.arena.enter [delay]: act as if the player held the entry circle (retries until allowed)"),
+				FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+				{
+					if (!World) return;
+					const float Delay = Args.Num() ? FCString::Atof(*Args[0]) : 0.0f;
+					TWeakObjectPtr<UWorld> WeakWorld(World);
+					TSharedPtr<FTimerHandle> H = MakeShared<FTimerHandle>();
+					World->GetTimerManager().SetTimer(*H, [WeakWorld, H]()
+					{
+						ARRGameMode* G = WeakWorld.IsValid() ? WeakWorld->GetAuthGameMode<ARRGameMode>() : nullptr;
+						if (!G) return;
+						if (G->CanEnterArena()) { G->RequestArenaMatch(G->GetArena()); WeakWorld->GetTimerManager().ClearTimer(*H); }
+					}, 0.5f, true, FMath::Max(0.01f, Delay));
+				}), ECVF_Cheat);
+		}
+		if (!IConsoleManager::Get().FindConsoleObject(TEXT("rr.cam.at")))
+		{
+			// dev: look from a fixed camera ("rr.cam.at X Y Z Pitch Yaw"), "rr.cam.at" alone returns to the player
+			IConsoleManager::Get().RegisterConsoleCommand(TEXT("rr.cam.at"), TEXT("rr.cam.at X Y Z Pitch Yaw"),
+				FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World)
+				{
+					APlayerController* PC = World ? World->GetFirstPlayerController() : nullptr;
+					if (!PC) return;
+					if (Args.Num() < 5) { PC->SetViewTargetWithBlend(PC->GetPawn(), 0.3f); return; }
+					ACameraActor* Cam = World->SpawnActor<ACameraActor>(FVector(FCString::Atof(*Args[0]), FCString::Atof(*Args[1]), FCString::Atof(*Args[2])),
+						FRotator(FCString::Atof(*Args[3]), FCString::Atof(*Args[4]), 0.0f));
+					if (Cam) { Cam->GetCameraComponent()->SetFieldOfView(Args.Num() > 5 ? FCString::Atof(*Args[5]) : 70.0f); PC->SetViewTarget(Cam); }
+				}), ECVF_Cheat);
+		}
 		CmdStartHere = IConsoleManager::Get().RegisterConsoleCommand(
 			TEXT("rr.start.here"), TEXT("Use the player's current location as the respawn point"),
 			FConsoleCommandDelegate::CreateLambda([this]()
@@ -111,27 +153,30 @@ void ARRGameMode::ChangeMatchState(ERRMatchState NewState)
 	}
 }
 
+APawn* ARRGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform)
+{
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.Instigator = GetInstigator();
+	SpawnInfo.ObjectFlags |= RF_Transient;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	return GetWorld()->SpawnActor<APawn>(GetDefaultPawnClassForController(NewPlayer), SpawnTransform, SpawnInfo);
+}
+
 void ARRGameMode::PollPlayerReady()
 {
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC) return;
 	APawn* PlayerPawn = PC->GetPawn();
-	if (!PlayerPawn) return;
+	if (!PlayerPawn)
+	{
+		RestartPlayer(PC);
+		PlayerPawn = PC->GetPawn();
+		if (!PlayerPawn) return;
+	}
 
 	GetWorld()->GetTimerManager().ClearTimer(PollPlayerTimer);
 
-	{
-		FVector StartLoc = FVector::ZeroVector;
-		if (AActor* Start = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass()))
-		{
-			StartLoc = Start->GetActorLocation();
-		}
-		SpawnOffset = PlayerPawn->GetActorLocation() - StartLoc;
-		if (SpawnOffset.Size2D() > 200.0f)
-		{
-			SpawnOffset = FVector(0.0f, 0.0f, SpawnOffset.Z); // spawned elsewhere (collision push-out): only keep the height
-		}
-	}
+	SpawnOffset = FVector::ZeroVector;
 
 	URRLoadoutComponent* Loadout = PlayerPawn->FindComponentByClass<URRLoadoutComponent>();
 	if (!Loadout)
@@ -148,18 +193,19 @@ void ARRGameMode::PollPlayerReady()
 
 	SetupPlayerLoadout();
 
-	if (PlayerWeaponSettings)
-	{
-		if (UAAACombatComponent* Combat = PlayerPawn->FindComponentByClass<UAAACombatComponent>())
-		{
-			Combat->EquipWeapon(PlayerWeaponSettings);
-		}
-	}
-
 	if (UAAAAttributeComponent* AttrComp = PlayerPawn->FindComponentByClass<UAAAAttributeComponent>())
 	{
 		AttrComp->OnDeath.AddUniqueDynamic(this, &ARRGameMode::OnPlayerDied);
 		AttrComp->OnHealthChanged.AddUniqueDynamic(this, &ARRGameMode::OnPlayerHealthChanged);
+	}
+
+	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(PlayerPawn))
+	{
+		if (UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent())
+		{
+			ASC->SetNumericAttributeBase(UAAAAttributeSet::GetMaxHealthAttribute(), 250.0f);
+			ASC->SetNumericAttributeBase(UAAAAttributeSet::GetHealthAttribute(), 250.0f);
+		}
 	}
 
 	bPlayerReady = true;
@@ -204,7 +250,7 @@ void ARRGameMode::SetupPlayerLoadout()
 	URRLoadoutComponent* Loadout = PlayerPawn->FindComponentByClass<URRLoadoutComponent>();
 	if (!Loadout) return;
 
-	FRRGearData Wep; Wep.Kind = ERRGearKind::Weapon; Wep.Name = TEXT("Rustic Blade"); Wep.Damage = 12; Wep.Level = 1; Wep.Id = TEXT("starter_wep");
+	FRRGearData Wep; Wep.Kind = ERRGearKind::Weapon; Wep.Name = TEXT("Fab Longsword"); Wep.Damage = 45; Wep.Level = 1; Wep.Id = TEXT("local_w4");
 	FRRGearData Arm; Arm.Kind = ERRGearKind::Armor; Arm.Name = TEXT("Padded Frame"); Arm.Armor = 8; Arm.Level = 1; Arm.Id = TEXT("starter_arm");
 
 	URRSuiBridge* SuiBridge = GetGameInstance()->GetSubsystem<URRSuiBridge>();
@@ -254,6 +300,17 @@ void ARRGameMode::StartPreMatch()
 	bRewardPending = false;
 	bRewardOffline = false;
 
+	if (Arena.IsValid())
+	{
+		// with a platform the duel waits for the entry circle instead of a countdown
+		bDuelStarting = false;
+		CurrentWave = 1; Waves = 1; EnemiesTotal = 1;
+		SpawnAmbientNpcs(Arena->GetCenter());
+		Arena->SetEntryEnabled(true);
+		if (!bFrontEndPending) { SpawnArenaBoss(!bBossEntrancePlayed); }
+		SetMusic((uint8)ERRMusicState::Explore);
+		return;
+	}
 	GetWorld()->GetTimerManager().SetTimer(PreMatchTimer, this, &ARRGameMode::PreMatchTick, 1.0f, true);
 }
 
@@ -295,6 +352,8 @@ void ARRGameMode::StartWave()
 			Center = Start->GetActorLocation();
 		}
 	}
+
+	SpawnAmbientNpcs(Center);
 
 	URREnemyDirector* Director = GetWorld()->GetSubsystem<URREnemyDirector>();
 	if (!Director) return;
@@ -363,6 +422,12 @@ void ARRGameMode::OnAllEnemiesDefeated()
 	{
 		ChangeMatchState(ERRMatchState::Won);
 		GetWorld()->GetTimerManager().ClearTimer(MatchTimer);
+		if (Arena.IsValid())
+		{
+			SetMusic((uint8)ERRMusicState::Victory);
+			if (URRAudioDirector* Audio = GetWorld()->GetSubsystem<URRAudioDirector>()) { Audio->PlayCrowd(0.9f); }
+			GetWorld()->GetTimerManager().SetTimer(ArenaTimer, this, &ARRGameMode::ExitArena, 5.0f, false);
+		}
 
 		URRSuiBridge* SuiBridge = GetGameInstance()->GetSubsystem<URRSuiBridge>();
 		if (SuiBridge && SuiBridge->IsConnected())
@@ -407,6 +472,7 @@ void ARRGameMode::OnPlayerDied()
 		UE_LOG(LogRR, Log, TEXT("Player defeated: dealt %.0f taken %.0f kills %d scrap %d"), Stats.DamageDealt, Stats.DamageTaken, Stats.Kills, Stats.Scrap);
 
 		ChangeMatchState(ERRMatchState::Lost);
+		SetMusic((uint8)ERRMusicState::Defeat);
 		GetWorld()->GetTimerManager().ClearTimer(MatchTimer);
 		GetWorld()->GetTimerManager().ClearTimer(PreMatchTimer);
 	}
@@ -459,11 +525,23 @@ FTransform ARRGameMode::GetStartTransform() const
 	{
 		return RespawnOverride;
 	}
+
+	FVector GroundPos(2000.0f, 400.0f, 150.0f);
+	if (UWorld* W = GetWorld())
+	{
+		FHitResult Hit;
+		FCollisionQueryParams Q(SCENE_QUERY_STAT(RRStartGround), false);
+		if (W->LineTraceSingleByChannel(Hit, GroundPos + FVector(0.0f, 0.0f, 1500.0f), GroundPos - FVector(0.0f, 0.0f, 3000.0f), ECC_Visibility, Q))
+		{
+			GroundPos = Hit.ImpactPoint + FVector(0.0f, 0.0f, 92.0f);
+		}
+	}
+
 	if (AActor* Start = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass()))
 	{
-		return FTransform(Start->GetActorRotation(), Start->GetActorLocation() + SpawnOffset);
+		return Start->GetActorTransform();
 	}
-	return FTransform(FRotator::ZeroRotator, SpawnOffset);
+	return FTransform(FRotator(0.0f, 0.0f, 0.0f), GroundPos);
 }
 
 void ARRGameMode::SetRespawnPoint(const FTransform& NewPoint)
@@ -528,7 +606,14 @@ void ARRGameMode::RestartMatch()
 			Combat->ClearState(FAAAGameplayTags::Get().State_Combat_Dead);
 			Combat->ClearState(FAAAGameplayTags::Get().State_Combat_Staggered);
 			Combat->SetBlocking(false);
-			if (PlayerWeaponSettings) Combat->EquipWeapon(PlayerWeaponSettings);
+			if (URRLoadoutComponent* Loadout = PlayerPawn->FindComponentByClass<URRLoadoutComponent>())
+			{
+				FRRGearData EquippedWep;
+				if (Loadout->GetEquipped(ERRGearKind::Weapon, EquippedWep))
+				{
+					Loadout->Equip(EquippedWep);
+				}
+			}
 		}
 		
 			// The player pawn disables its own input and tick on death (AAAAPlayerPawn::OnDeath): undo that.
@@ -545,4 +630,216 @@ void ARRGameMode::RestartMatch()
 	GetWorld()->GetTimerManager().ClearTimer(PreMatchTimer);
 	
 	StartPreMatch();
+}
+
+void ARRGameMode::SpawnAmbientNpcs(const FVector& Center)
+{
+	if (bAmbientSpawned) return;
+	bAmbientSpawned = true;
+	UWorld* World = GetWorld();
+	const URRSettings* Settings = URRSettings::Get();
+	if (!World || !Settings) return;
+
+	if (Settings->bCinematicLook)
+	{
+		World->SpawnActor<ARRCinematicLook>();
+	}
+
+	if (!Settings->bSpawnNpcs || FParse::Param(FCommandLine::Get(), TEXT("RRNoNpcs"))) return;
+	UClass* PawnClass = Settings->NpcPawnClass.LoadSynchronous();
+	if (!PawnClass) { UE_LOG(LogRR, Warning, TEXT("NPC pawn class missing")); return; }
+
+	// Place NPCs in the cheering area (the tiered stands of the Colosseum) overlooking the duel
+	const int32 Num = Settings->NpcVisualClasses.Num();
+	const FVector ArenaCenter = Arena.IsValid() ? Arena->GetCenter() : Center;
+	int32 Spawned = 0;
+
+	for (int32 i = 0; i < Num; ++i)
+	{
+		UClass* Look = Settings->NpcVisualClasses[i].LoadSynchronous();
+		if (!Look) { UE_LOG(LogRR, Warning, TEXT("NPC look %s missing"), *Settings->NpcVisualClasses[i].ToString()); continue; }
+
+		// Distribute around the cheering stands (radii 2400 to 2800, outside the 1750 green combat ring)
+		const float BaseAngle = (2.0f * PI * i) / FMath::Max(1, Num) + 0.25f;
+		const float StandRadius = 2400.0f + ((i % 3) * 160.0f);
+
+		FVector Loc = FVector::ZeroVector;
+		bool bFound = false;
+		FCollisionQueryParams Q(SCENE_QUERY_STAT(RRNpcGround), false);
+
+		const FVector Dir(FMath::Cos(BaseAngle), FMath::Sin(BaseAngle), 0.0f);
+		const FVector Probe = ArenaCenter + Dir * StandRadius;
+		FHitResult Ground;
+		if (World->LineTraceSingleByChannel(Ground, Probe + FVector(0, 0, 1500.0f), Probe - FVector(0, 0, 1500.0f), ECC_Visibility, Q))
+		{
+			Loc = Ground.ImpactPoint + FVector(0, 0, 95.0f);
+			bFound = true;
+		}
+
+		if (!bFound) { UE_LOG(LogRR, Log, TEXT("NPC %d: no ground on cheering stand, skipped"), i); continue; }
+		const FRotator Facing = (ArenaCenter - Loc).GetSafeNormal2D().Rotation();
+
+		FActorSpawnParameters P;
+		P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		APawn* Npc = World->SpawnActor<APawn>(PawnClass, Loc, Facing, P);
+		if (!Npc) continue;
+
+		Npc->AIControllerClass = ARRNpcController::StaticClass();
+		Npc->SpawnDefaultController();
+		if (ARRNpcController* NpcAI = Cast<ARRNpcController>(Npc->GetController()))
+		{
+			NpcAI->MakeSpectator(Arena.Get());
+		}
+
+		URRRobotVisualComponent* Visual = NewObject<URRRobotVisualComponent>(Npc, TEXT("RRNpcVisual"));
+		Visual->VisualClass = Look;
+		Visual->RegisterComponent();   // BeginPlay runs now (actor already began play) -> applies the look shortly after
+		++Spawned;
+		UE_LOG(LogRR, Log, TEXT("NPC %s spawned as %s at %s"), *Npc->GetName(), *Look->GetName(), *Loc.ToCompactString());
+	}
+	UE_LOG(LogRR, Log, TEXT("Ambient NPCs: %d"), Spawned);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Duel platform flow: boss walks in -> player holds the entry circle -> teleport onto the platform -> taunt -> fight ->
+// win (crowd, back outside) / lose (defeat screen, respawn outside, boss reset on the platform).
+
+ARRBoss* ARRGameMode::FindBoss() const
+{
+	if (URREnemyDirector* Director = GetWorld()->GetSubsystem<URREnemyDirector>())
+	{
+		for (ARREnemy* E : Director->GetLivingEnemies())
+		{
+			if (ARRBoss* B = Cast<ARRBoss>(E)) return B;
+		}
+	}
+	return nullptr;
+}
+
+void ARRGameMode::SetMusic(uint8 State)
+{
+	if (URRAudioDirector* Audio = GetWorld()->GetSubsystem<URRAudioDirector>())
+	{
+		Audio->SetMusicState((ERRMusicState)State);
+	}
+}
+
+bool ARRGameMode::CanEnterArena() const
+{
+	if (!Arena.IsValid() || bFrontEndPending || bDuelStarting || MatchState != ERRMatchState::PreMatch) return false;
+	ARRBoss* Boss = FindBoss();
+	if (!Boss) return false;
+	const ARRBossAIController* AI = Cast<ARRBossAIController>(Boss->GetController());
+	return !AI || !AI->IsWalking();
+}
+
+void ARRGameMode::SpawnArenaBoss(bool bEntrance)
+{
+	if (!Arena.IsValid() || FindBoss()) return;
+	const URRSettings* Settings = URRSettings::Get();
+	UClass* BossClass = Settings ? Settings->BossClass.LoadSynchronous() : nullptr;
+	URREnemyDirector* Director = GetWorld()->GetSubsystem<URREnemyDirector>();
+	if (!Director) return;
+
+	const FVector Spot = Arena->BossSpot->GetComponentLocation();
+	const FVector Face = Arena->PlayerSpot->GetComponentLocation();
+	const FRotator Rot = (Face - Spot).GetSafeNormal2D().Rotation();
+	ARRBoss* Boss = Cast<ARRBoss>(Director->SpawnEnemy(BossClass ? BossClass : ARRBoss::StaticClass(), FTransform(Rot, Spot)));
+	if (!Boss) return;
+
+	if (ARRBossAIController* AI = Cast<ARRBossAIController>(Boss->GetController()))
+	{
+		AI->SetDormant(true);
+	}
+	Arena->SetActorPassesWalls(Boss, false);
+	bBossEntrancePlayed = true;
+	UE_LOG(LogRR, Log, TEXT("Arena Boss spawned inside Colosseum at %s facing %s"), *Spot.ToCompactString(), *Face.ToCompactString());
+}
+
+void ARRGameMode::TeleportPawn(APawn* Pawn, const FVector& Location, const FRotator& Facing, bool bEffects)
+{
+	if (!Pawn) return;
+	static UParticleSystem* Burst = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/ParagonGreystone/FX/Particles/Greystone/Abilities/Primary/FX/P_Greystone_Primary_Impact.P_Greystone_Primary_Impact"));
+	if (bEffects && Burst)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Burst, Pawn->GetActorLocation(), FRotator::ZeroRotator, FVector(1.5f));
+	}
+	Pawn->SetActorLocationAndRotation(Location, FRotator(0.0f, Facing.Yaw, 0.0f), false, nullptr, ETeleportType::TeleportPhysics);
+	if (AController* C = Pawn->GetController())
+	{
+		C->SetControlRotation(FRotator(-10.0f, Facing.Yaw, 0.0f));
+	}
+	if (bEffects && Burst)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Burst, Location, FRotator::ZeroRotator, FVector(1.5f));
+	}
+	if (bEffects)
+	{
+		if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+		{
+			if (ARRHUD* HUD = Cast<ARRHUD>(PC->GetHUD())) { HUD->Flash(FLinearColor(1.0f, 0.97f, 0.9f), 0.7f); }
+		}
+	}
+}
+
+void ARRGameMode::RequestArenaMatch(ARRArena* InArena)
+{
+	if (!CanEnterArena()) return;
+	ARRBoss* Boss = FindBoss();
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	APawn* Player = PC ? PC->GetPawn() : nullptr;
+	if (!Boss || !Player) return;
+
+	bDuelStarting = true;
+	Arena->SetEntryEnabled(false);
+	ResetRunStats();
+	MatchTimeSeconds = 0.0f;
+	EnemiesKilled = 0;
+
+	const FVector PSpot = Arena->PlayerSpot->GetComponentLocation();
+	const FVector BSpot = Arena->BossSpot->GetComponentLocation();
+	TeleportPawn(Player, PSpot, (BSpot - PSpot).Rotation(), true);
+	if (FVector::Dist2D(Boss->GetActorLocation(), BSpot) > 150.0f)
+	{
+		Boss->SetActorLocation(BSpot + FVector(0, 0, 20.0f), false, nullptr, ETeleportType::TeleportPhysics);
+	}
+	Boss->SetActorRotation((PSpot - BSpot).GetSafeNormal2D().Rotation());
+	Arena->SetActorPassesWalls(Boss, false);
+	if (ARRBossAIController* AI = Cast<ARRBossAIController>(Boss->GetController()))
+	{
+		AI->WalkTo(BSpot, PSpot);   // stand and face the challenger
+	}
+	Boss->PlayTaunt();
+	SetMusic((uint8)ERRMusicState::Battle);
+	if (URRAudioDirector* Audio = GetWorld()->GetSubsystem<URRAudioDirector>()) { Audio->PlayCrowd(0.7f); }
+	UE_LOG(LogRR, Log, TEXT("Player entered the arena: duel starts"));
+
+	// let the taunt read before the boss engages
+	GetWorld()->GetTimerManager().SetTimer(ArenaTimer, this, &ARRGameMode::StartArenaDuel, 2.4f, false);
+}
+
+void ARRGameMode::StartArenaDuel()
+{
+	bDuelStarting = false;
+	if (ARRBoss* Boss = FindBoss())
+	{
+		if (ARRBossAIController* AI = Cast<ARRBossAIController>(Boss->GetController()))
+		{
+			AI->SetDormant(false);
+		}
+	}
+	ChangeMatchState(ERRMatchState::InProgress);
+	GetWorld()->GetTimerManager().SetTimer(MatchTimer, this, &ARRGameMode::MatchTimerTick, 1.0f, true);
+}
+
+void ARRGameMode::ExitArena()
+{
+	if (!Arena.IsValid()) return;
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (APawn* Player = PC ? PC->GetPawn() : nullptr)
+	{
+		const FVector Exit = Arena->ExitPoint->GetComponentLocation();
+		TeleportPawn(Player, Exit, (Arena->GetCenter() - Exit).Rotation(), true);
+	}
+	SetMusic((uint8)ERRMusicState::Explore);
 }

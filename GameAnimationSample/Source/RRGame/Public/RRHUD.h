@@ -22,6 +22,7 @@ enum class ERRScreen : uint8
 	Settings,
 	Blockchain,
 	Loading,     // slideshow with a black bar at the bottom
+	IntroVideo,  // optional Content/Movies/RR_Intro.mp4 after loading
 	Playing
 };
 
@@ -157,6 +158,26 @@ protected:
 	void OnKeyC();
 	void DrawMatchHUD();
 	void DrawCinematicBars();
+
+	// ---- intro video, flash, arena prompt (RRHUD_Intro.cpp) ----
+	bool StartIntroVideo();
+	void DrawIntroVideo();
+	void EndIntroVideo();
+	void DrawArenaPrompt();
+	void DrawFlash();
+public:
+	/** Full-screen flash that fades out (teleports, deathblows). */
+	void Flash(const FLinearColor& Color, float Duration);
+protected:
+	double IntroStart = 0.0;
+	bool bIntroWasPlaying = false;
+	FLinearColor FlashColor = FLinearColor::White;
+	double FlashStart = -100.0;
+	float FlashDuration = 0.5f;
+	UPROPERTY(Transient) TObjectPtr<class UMediaPlayer> IntroPlayer;
+	UPROPERTY(Transient) TObjectPtr<class UFileMediaSource> IntroSource;
+	UPROPERTY(Transient) TObjectPtr<class UMediaTexture> IntroTexture;
+	UPROPERTY(Transient) TObjectPtr<class UMediaSoundComponent> IntroSound;
 	void DrawDamageFx();
 	void DrawBossHud();
 

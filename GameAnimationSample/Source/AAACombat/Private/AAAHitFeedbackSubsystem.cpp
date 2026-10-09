@@ -13,6 +13,8 @@
 #include "TimerManager.h"
 #include "Engine/HitResult.h"
 #include "Shakes/WaveOscillatorCameraShakePattern.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
 
 UAAACombatCameraShake::UAAACombatCameraShake(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -109,19 +111,41 @@ void UAAAHitFeedbackSubsystem::OnHitConfirmed(AActor* Attacker, AActor* Victim, 
 	AddDamageNumber(Loc, Damage, bHeavy ? FLinearColor(1.0f, 0.5f, 0.0f) : FLinearColor::White); // Orange heavy, White normal
 }
 
+namespace
+{
+	/** Sword-on-sword sparks at chest height between the two fighters. */
+	void SpawnClashSparks(UObject* WorldContext, AActor* A, AActor* B, float Scale)
+	{
+		static TSoftObjectPtr<UParticleSystem> Sparks(FSoftObjectPath(TEXT("/Game/ParagonGreystone/FX/Particles/Greystone/Abilities/Primary/FX/P_Greystone_Primary_Sparks.P_Greystone_Primary_Sparks")));
+		UParticleSystem* PS = Sparks.LoadSynchronous();
+		if (!PS || !B) return;
+		FVector Loc = B->GetActorLocation() + FVector(0, 0, 60.0f);
+		if (A)
+		{
+			Loc = FMath::Lerp(A->GetActorLocation(), B->GetActorLocation(), 0.6f) + FVector(0, 0, 70.0f);
+		}
+		UGameplayStatics::SpawnEmitterAtLocation(WorldContext, PS, Loc, FRotator::ZeroRotator, FVector(Scale), true);
+	}
+}
+
 void UAAAHitFeedbackSubsystem::OnBlocked(AActor* Attacker, AActor* Victim)
 {
 	if (Victim)
 	{
-		AddDamageNumber(Victim->GetActorLocation(), 0.0f, FLinearColor::Gray);
+		SpawnClashSparks(this, Attacker, Victim, 0.8f);
+		ApplyHitStop(Attacker, Victim, false);
 	}
 }
 
 void UAAAHitFeedbackSubsystem::OnParried(AActor* Attacker, AActor* Victim)
 {
+	// Attacker = the one whose swing got deflected, Victim = the defender.
 	if (Victim)
 	{
-		AddDamageNumber(Victim->GetActorLocation(), 0.0f, FLinearColor(0.0f, 1.0f, 1.0f)); // Cyan parried
+		SpawnClashSparks(this, Attacker, Victim, 1.6f);
+		ApplyHitStop(Attacker, Victim, true);
+		PlayCameraShake(Attacker, Victim, true, 30.0f);
+		AddDamageNumber(Victim->GetActorLocation() + FVector(0, 0, 40.0f), 0.0f, FLinearColor(1.0f, 0.7f, 0.2f)); // deflect flash
 	}
 }
 

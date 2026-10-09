@@ -83,6 +83,24 @@ float UAAACombatComponent::PlayMontageOnOwner(UAnimMontage* Montage, float PlayR
 	if (!Montage) return 0.0f;
 	if (UAnimInstance* AnimInst = FindAnimInstance())
 	{
+		// Characters whose Anim Blueprint has no DefaultSlot (Paragon: "FullBody" only) replay the montage's animation
+		// on the slot they do have; otherwise the montage would run invisibly (notifies fire, nothing moves).
+		if (!MontageSlotOverride.IsNone())
+		{
+			const FSlotAnimationTrack* Track = Montage->SlotAnimTracks.Num() > 0 ? &Montage->SlotAnimTracks[0] : nullptr;
+			if (Track && Track->SlotName != MontageSlotOverride && Track->AnimTrack.AnimSegments.Num() > 0)
+			{
+				if (UAnimSequenceBase* Seq = Track->AnimTrack.AnimSegments[0].GetAnimReference())
+				{
+					const float Rate = PlayRate * Montage->RateScale;
+					if (UAnimMontage* Dyn = AnimInst->PlaySlotAnimationAsDynamicMontage(Seq, MontageSlotOverride,
+						Montage->BlendIn.GetBlendTime(), Montage->BlendOut.GetBlendTime(), Rate))
+					{
+						return Dyn->GetPlayLength() / FMath::Max(0.01f, Rate);
+					}
+				}
+			}
+		}
 		float Duration = AnimInst->Montage_Play(Montage, PlayRate);
 		if (Duration > 0.f && StartSection != NAME_None)
 		{
@@ -102,6 +120,26 @@ void UAAACombatComponent::PlayHitReaction(AActor* Attacker, bool bHeavy)
 	}
 	if (HasState(Tags.State_Combat_Attacking) && !bHeavy)
 	{
+		return;
+	}
+
+	// Heavy (perilous) hit: thrown down, then a real get-up instead of popping upright when the montage blends out.
+	if (bHeavy && HitReactions.Knockdown)
+	{
+		const float Rate = 0.9f;
+		PlayMontageOnOwner(HitReactions.Knockdown, Rate);
+		if (HitReactions.GetUp && GetWorld())
+		{
+			const float EffRate = FMath::Max(0.05f, Rate * HitReactions.Knockdown->RateScale);
+			const float Delay = FMath::Max(0.1f, HitReactions.Knockdown->GetPlayLength() / EffRate - 0.12f);
+			GetWorld()->GetTimerManager().SetTimer(GetUpTimerHandle, FTimerDelegate::CreateWeakLambda(this, [this]()
+			{
+				if (!HasState(FAAAGameplayTags::Get().State_Combat_Dead))
+				{
+					PlayMontageOnOwner(HitReactions.GetUp, 1.0f);
+				}
+			}), Delay, false);
+		}
 		return;
 	}
 
@@ -144,7 +182,14 @@ void UAAACombatComponent::PlayBlockImpact()
 {
 	if (CurrentWeaponSettings && CurrentWeaponSettings->Animations.BlockMontage)
 	{
-		PlayMontageOnOwner(CurrentWeaponSettings->Animations.BlockMontage, 1.0f, FName("Loop"));
+		UAnimMontage* Montage = CurrentWeaponSettings->Animations.BlockMontage;
+		FName StartSec = Montage->IsValidSectionName(FName("Loop")) ? FName("Loop") : NAME_None;
+		PlayMontageOnOwner(Montage, 1.0f, StartSec);
+		if (UAnimInstance* AnimInst = FindAnimInstance())
+		{
+			FName ActiveSec = StartSec.IsNone() ? (Montage->GetNumSections() > 0 ? Montage->GetSectionName(0) : FName("Default")) : StartSec;
+			AnimInst->Montage_SetNextSection(ActiveSec, ActiveSec, Montage);
+		}
 	}
 	else if (HitReactions.Front)
 	{
@@ -313,17 +358,13 @@ void UAAACombatComponent::ToggleWeaponDraw()
 
 namespace
 {
-	/** The mesh weapons attach to: ACharacter::GetMesh(), or (Mover pawns, which are plain APawns) the first skeletal mesh owned by the actor. */
+	/** The mesh weapons attach to: retargeted display actor (VisualOverride), or ACharacter::GetMesh(). */
 	USkeletalMeshComponent* FindOwnerMesh(AActor* Owner)
 	{
-		if (const ACharacter* Character = Cast<ACharacter>(Owner))
-		{
-			return Character->GetMesh();
-		}
 		if (!Owner) return nullptr;
 
-		// Mover pawns show a retargeted display actor (VisualOverride child actor) while the hidden master mannequin only drives the pose.
-		// The weapon must follow the VISIBLE hand, otherwise it drifts away from it whenever the retargeted pose differs from the mannequin's.
+		// Characters with retargeted display actors (such as the robot on SandboxCharacter_CMC) must attach weapons
+		// to the VISIBLE display mesh, otherwise the weapon sits on the hidden master mannequin.
 		TInlineComponentArray<UChildActorComponent*> Children;
 		Owner->GetComponents(Children);
 		for (UChildActorComponent* Child : Children)
@@ -340,6 +381,11 @@ namespace
 				}
 			}
 		}
+
+		if (const ACharacter* Character = Cast<ACharacter>(Owner))
+		{
+			return Character->GetMesh();
+		}
 		return Owner->FindComponentByClass<USkeletalMeshComponent>();
 	}
 }
@@ -352,10 +398,21 @@ void UAAACombatComponent::AttachWeaponToHand()
 	if (!OwnerMesh) return;
 
 	FName HandSocket = CurrentWeaponSettings->Visuals.AttachmentSocket;
-	if (HandSocket.IsNone()) HandSocket = FName("hand_r");
+	if (HandSocket.IsNone()) HandSocket = FName("weapon_r");
 
-	CurrentWeapon->AttachToComponent(OwnerMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandSocket);
-	CurrentWeapon->SetActorRelativeTransform(CurrentWeaponSettings->Visuals.HandOffset);
+	if (OwnerMesh->DoesSocketExist(HandSocket))
+	{
+		CurrentWeapon->AttachToComponent(OwnerMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandSocket);
+		CurrentWeapon->SetActorRelativeTransform(CurrentWeaponSettings->Visuals.HandOffset);
+	}
+	else
+	{
+		// Fallback: attach to hand_r and apply the standard weapon_r offset relative to wrist bone
+		CurrentWeapon->AttachToComponent(OwnerMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("hand_r"));
+		FTransform FallbackOffset(FRotator(0.0f, -180.0f, 0.0f), FVector(-10.764f, 5.811f, -0.728f), FVector::OneVector);
+		CurrentWeapon->SetActorRelativeTransform(FallbackOffset * CurrentWeaponSettings->Visuals.HandOffset);
+	}
+	CurrentWeapon->SetActorHiddenInGame(false);
 }
 
 void UAAACombatComponent::AttachWeaponToHolster()
@@ -370,6 +427,7 @@ void UAAACombatComponent::AttachWeaponToHolster()
 
 	CurrentWeapon->AttachToComponent(OwnerMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HolsterSocket);
 	CurrentWeapon->SetActorRelativeTransform(CurrentWeaponSettings->Visuals.HolsterOffset);
+	CurrentWeapon->SetActorHiddenInGame(true);
 }
 
 void UAAACombatComponent::RefreshCombatTimeout(float TimeoutSeconds)
@@ -382,6 +440,12 @@ void UAAACombatComponent::RefreshCombatTimeout(float TimeoutSeconds)
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(AutoSheathTimerHandle);
+		// Players holster only on purpose (1 / mouse wheel / R): the sword vanishes, so auto-sheath would look like a bug.
+		const APawn* OwnerPawn = Cast<APawn>(GetOwner());
+		if (OwnerPawn && OwnerPawn->IsPlayerControlled())
+		{
+			return;
+		}
 		if (TimeoutSeconds > 0.0f && CombatStance == EAAACombatStance::Armed_Drawn)
 		{
 			World->GetTimerManager().SetTimer(AutoSheathTimerHandle, this, &UAAACombatComponent::SheathWeapon, TimeoutSeconds, false);
@@ -420,7 +484,17 @@ void UAAACombatComponent::RequestAttack(EAAAAttackType Type)
 	else
 	{
 		BufferedAttack = Type;
-		BufferExpiresAt = GetWorld()->GetTimeSeconds() + UAAACombatSettings::Get()->ComboInputBufferSeconds;
+		BufferExpiresAt = GetWorld()->GetTimeSeconds() + (UAAACombatSettings::Get() ? UAAACombatSettings::Get()->ComboInputBufferSeconds : 0.8f);
+		if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetOwner()))
+		{
+			if (UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent())
+			{
+				FGameplayEventData EventData;
+				EventData.EventTag = FAAAGameplayTags::Get().GameplayEvent_Combat_ComboInput;
+				EventData.Instigator = GetOwner();
+				ASC->HandleGameplayEvent(FAAAGameplayTags::Get().GameplayEvent_Combat_ComboInput, &EventData);
+			}
+		}
 	}
 }
 
@@ -451,10 +525,23 @@ void UAAACombatComponent::SetLoadoutModifiers(float DamageMult, float DamageRedu
 
 void UAAACombatComponent::Multicast_OnHitConfirmed_Implementation(AActor* Attacker, AActor* Victim, const FHitResult& Hit, bool bHeavy, float Damage)
 {
+	// Called on the ATTACKER's component. Fan the hit out to the global listeners (knockback, hit-stop/shake/numbers,
+	// match stats, boss deathblow) and make the VICTIM react.
 	OnHitConfirmed.Broadcast(Attacker, Victim, Hit, bHeavy, Damage);
-	if (Victim == GetOwner())
+	FAAACombatEvents::OnHitConfirmed().Broadcast(Attacker, Victim, Hit, bHeavy, Damage);
+	if (Victim)
 	{
-		PlayHitReaction(Attacker, bHeavy);
+		if (UAAACombatComponent* VictimCombat = Victim->FindComponentByClass<UAAACombatComponent>())
+		{
+			if (VictimCombat->HasState(FAAAGameplayTags::Get().State_Combat_Blocking))
+			{
+				VictimCombat->PlayBlockImpact();
+			}
+			else
+			{
+				VictimCombat->PlayHitReaction(Attacker, bHeavy);
+			}
+		}
 	}
 }
 
@@ -703,6 +790,39 @@ void UAAACombatComponent::SetBlocking(bool bWantsBlock)
 	if (!GetOwner()->HasAuthority())
 	{
 		Server_SetBlocking(bWantsBlock);
+
+		// Local client responsiveness for blocking
+		if (bWantsBlock)
+		{
+			if (CurrentWeaponSettings && CurrentWeaponSettings->Animations.BlockMontage)
+			{
+				UAnimMontage* Montage = CurrentWeaponSettings->Animations.BlockMontage;
+				if (Montage->CompositeSections.Num() > 0)
+				{
+					Montage->CompositeSections[0].NextSectionName = Montage->CompositeSections[0].SectionName;
+				}
+				FName StartSec = Montage->IsValidSectionName(FName("Loop")) ? FName("Loop") : NAME_None;
+				PlayMontageOnOwner(Montage, 1.0f, StartSec);
+				if (UAnimInstance* AnimInst = FindAnimInstance())
+				{
+					FName ActiveSec = StartSec.IsNone() ? (Montage->GetNumSections() > 0 ? Montage->GetSectionName(0) : FName("Default")) : StartSec;
+					AnimInst->Montage_SetNextSection(ActiveSec, ActiveSec, Montage);
+				}
+			}
+		}
+		else
+		{
+			if (CurrentWeaponSettings && CurrentWeaponSettings->Animations.BlockMontage)
+			{
+				if (UAnimInstance* AnimInst = FindAnimInstance())
+				{
+					if (AnimInst->Montage_IsPlaying(CurrentWeaponSettings->Animations.BlockMontage))
+					{
+						AnimInst->Montage_Stop(0.15f, CurrentWeaponSettings->Animations.BlockMontage);
+					}
+				}
+			}
+		}
 	}
 	else
 	{
@@ -729,8 +849,7 @@ void UAAACombatComponent::Server_SetBlocking_Implementation(bool bWantsBlock)
 	if (bWantsBlock)
 	{
 		if (ASC->HasMatchingGameplayTag(Tags.State_Combat_Dead) ||
-			ASC->HasMatchingGameplayTag(Tags.State_Combat_Staggered) ||
-			ASC->HasMatchingGameplayTag(Tags.State_Combat_Attacking))
+			ASC->HasMatchingGameplayTag(Tags.State_Combat_Staggered))
 		{
 			return;
 		}
@@ -746,6 +865,27 @@ void UAAACombatComponent::Server_SetBlocking_Implementation(bool bWantsBlock)
 			}
 		}
 
+		// Cancelling an active attack into a reactive block/parry
+		bool bWasAttacking = ASC->HasMatchingGameplayTag(Tags.State_Combat_Attacking);
+		if (bWasAttacking)
+		{
+			FGameplayTagContainer AttackTags;
+			AttackTags.AddTag(Tags.InputTag_Attack);
+			AttackTags.AddTag(Tags.InputTag_AttackHeavy);
+			AttackTags.AddTag(Tags.State_Combat_Attacking);
+			ASC->CancelAbilities(&AttackTags);
+			ASC->RemoveLooseGameplayTag(Tags.State_Combat_Attacking);
+
+			if (UAnimInstance* AnimInst = FindAnimInstance())
+			{
+				AnimInst->StopAllMontages(0.08f);
+			}
+			if (AAAAWeaponActor* Weapon = GetCurrentWeapon())
+			{
+				Weapon->StopWeaponTrace();
+			}
+		}
+
 		if (CombatStance == EAAACombatStance::Armed_Holstered || CombatStance == EAAACombatStance::Unarmed)
 		{
 			if (CurrentWeaponSettings)
@@ -758,22 +898,28 @@ void UAAACombatComponent::Server_SetBlocking_Implementation(bool bWantsBlock)
 		bIsBlocking = true;
 
 		float CurrentTime = GetWorld()->GetTimeSeconds();
-		if (CurrentTime - LastParryWindowStart >= 0.4f)
+		if (bWasAttacking || (CurrentTime - LastParryWindowStart >= 0.15f))
 		{
 			LastParryWindowStart = CurrentTime;
 			const UAAACombatSettings* Settings = UAAACombatSettings::Get();
-			ApplyTimedState(Tags.State_Combat_Parrying, Settings->ParryWindowSeconds);
+			float ParryDuration = Settings ? Settings->ParryWindowSeconds : 0.35f;
+			if (ParryDuration < 0.35f) ParryDuration = 0.35f;
+			ApplyTimedState(Tags.State_Combat_Parrying, ParryDuration);
 		}
 
 		if (CurrentWeaponSettings && CurrentWeaponSettings->Animations.BlockMontage)
 		{
+			UAnimMontage* Montage = CurrentWeaponSettings->Animations.BlockMontage;
+			if (Montage->CompositeSections.Num() > 0)
+			{
+				Montage->CompositeSections[0].NextSectionName = Montage->CompositeSections[0].SectionName;
+			}
+			FName StartSec = Montage->IsValidSectionName(FName("Loop")) ? FName("Loop") : NAME_None;
+			PlayMontageOnOwner(Montage, 1.0f, StartSec);
 			if (UAnimInstance* AnimInst = FindAnimInstance())
 			{
-				AnimInst->Montage_Play(CurrentWeaponSettings->Animations.BlockMontage);
-				if (CurrentWeaponSettings->Animations.BlockMontage->IsValidSectionName(FName("Loop")))
-				{
-					AnimInst->Montage_JumpToSection(FName("Loop"), CurrentWeaponSettings->Animations.BlockMontage);
-				}
+				FName ActiveSec = StartSec.IsNone() ? (Montage->GetNumSections() > 0 ? Montage->GetSectionName(0) : FName("Default")) : StartSec;
+				AnimInst->Montage_SetNextSection(ActiveSec, ActiveSec, Montage);
 			}
 		}
 	}
@@ -789,7 +935,7 @@ void UAAACombatComponent::Server_SetBlocking_Implementation(bool bWantsBlock)
 			{
 				if (AnimInst->Montage_IsPlaying(CurrentWeaponSettings->Animations.BlockMontage))
 				{
-					AnimInst->Montage_Stop(0.2f, CurrentWeaponSettings->Animations.BlockMontage);
+					AnimInst->Montage_Stop(0.15f, CurrentWeaponSettings->Animations.BlockMontage);
 				}
 			}
 		}
@@ -799,23 +945,60 @@ void UAAACombatComponent::Server_SetBlocking_Implementation(bool bWantsBlock)
 void UAAACombatComponent::OnParriedEvent(const FGameplayEventData* Payload)
 {
 	// This runs on the ATTACKER whose swing was deflected; Payload->Target is the defender.
+	// Sekiro rule: a deflect costs the attacker posture (poise). Only when posture breaks is the attacker staggered (deathblow window);
+	// otherwise its swing is knocked back (attack cancelled + short recoil).
 	FAAACombatEvents::OnParried().Broadcast(GetOwner(), const_cast<AActor*>(Payload ? Payload->Target.Get() : nullptr));
+
+	const FAAAGameplayTags& Tags = FAAAGameplayTags::Get();
+	const UAAACombatSettings* Settings = UAAACombatSettings::Get();
+	UAbilitySystemComponent* ASC = nullptr;
 	if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(GetOwner()))
 	{
-		if (UAbilitySystemComponent* ASC = ASI->GetAbilitySystemComponent())
+		ASC = ASI->GetAbilitySystemComponent();
+	}
+
+	if (ASC)
+	{
+		FGameplayTagContainer CancelTags;
+		CancelTags.AddTag(Tags.State_Combat_Attacking);
+		ASC->CancelAbilities(&CancelTags);
+	}
+	// montage-driven attacks (the boss) are not abilities: stop whatever swing is playing
+	if (UAnimInstance* Anim = FindAnimInstance())
+	{
+		Anim->Montage_Stop(0.12f);
+	}
+
+	bool bBroken = true;
+	if (ASC)
+	{
+		const FGameplayAttribute PoiseAttr = GetAttributeByName(ASC, FName("Poise"));
+		const FGameplayAttribute MaxPoiseAttr = GetAttributeByName(ASC, FName("MaxPoise"));
+		if (PoiseAttr.IsValid() && MaxPoiseAttr.IsValid())
 		{
-			FGameplayTagContainer CancelTags;
-			CancelTags.AddTag(FAAAGameplayTags::Get().State_Combat_Attacking);
-			ASC->CancelAbilities(&CancelTags);
+			const bool bPerilous = ASC->HasMatchingGameplayTag(Tags.State_Boss_Perilous);
+			const float DeflectPoise = bPerilous ? 6.0f : 38.0f;
+			const float NewPoise = ASC->GetNumericAttribute(PoiseAttr) - DeflectPoise;
+			bBroken = NewPoise <= 0.0f;
+			ASC->SetNumericAttributeBase(PoiseAttr, bBroken ? ASC->GetNumericAttribute(MaxPoiseAttr) : NewPoise);
+			LastPoiseDrainTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 		}
 	}
 
-	const UAAACombatSettings* Settings = UAAACombatSettings::Get();
-	ApplyTimedState(FAAAGameplayTags::Get().State_Combat_Staggered, Settings->ParryStaggerSeconds);
-	
-	if (HitReactions.Stagger)
+	if (bBroken)
 	{
-		PlayMontageOnOwner(HitReactions.Stagger);
+		ApplyTimedState(Tags.State_Combat_Staggered, Settings->ParryStaggerSeconds * 2.0f);
+		if (ASC)
+		{
+			FGameplayEventData Event;
+			Event.EventTag = Tags.GameplayEvent_Combat_Staggered;
+			ASC->HandleGameplayEvent(Tags.GameplayEvent_Combat_Staggered, &Event); // plays the stagger reaction + boss deathblow window
+		}
+	}
+	else
+	{
+		ApplyTimedState(Tags.State_Combat_Staggered, 0.35f); // brief recoil: cannot attack straight back
+		PlayMontageOnOwner(HitReactions.Front ? HitReactions.Front.Get() : HitReactions.Stagger.Get(), 1.4f);
 	}
 }
 

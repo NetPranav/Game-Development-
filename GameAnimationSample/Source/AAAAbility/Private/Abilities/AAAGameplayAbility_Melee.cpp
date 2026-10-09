@@ -7,6 +7,7 @@
 #include "AAACombatComponent.h"
 #include "DataAssets/AAAWeaponSettings.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "AAAGameplayTags.h"
 #include "AAADebugLogger.h"
 #include "Effects/AAAGE_Damage.h"
@@ -139,6 +140,10 @@ void UAAAGameplayAbility_Melee::PlayAttack(EAAAAttackType Type)
 
 	if (MontageTask)
 	{
+		MontageTask->OnCompleted.Clear();
+		MontageTask->OnBlendOut.Clear();
+		MontageTask->OnInterrupted.Clear();
+		MontageTask->OnCancelled.Clear();
 		MontageTask->EndTask();
 		MontageTask = nullptr;
 	}
@@ -172,12 +177,35 @@ void UAAAGameplayAbility_Melee::PlayAttack(EAAAAttackType Type)
 		}
 	}
 
+	// Check if in air (jump attack)
+	bool bInAir = false;
+	if (ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo()))
+	{
+		if (Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsFalling())
+		{
+			bInAir = true;
+		}
+	}
+
 	UAnimMontage* MontageToPlay = nullptr;
 	if (UAAACombatComponent* CombatComp = GetAvatarActorFromActorInfo()->FindComponentByClass<UAAACombatComponent>())
 	{
 		if (UAAAWeaponSettings* WeaponSettings = CombatComp->GetCurrentWeaponSettings())
 		{
-			if (Type == EAAAAttackType::Light)
+			if (bInAir)
+			{
+				// Jump Attack!
+				if (WeaponSettings->Animations.HeavyAttackCombos.Num() > 0)
+				{
+					MontageToPlay = WeaponSettings->Animations.HeavyAttackCombos[0];
+				}
+				else
+				{
+					MontageToPlay = LoadObject<UAnimMontage>(nullptr, TEXT("/Game/RR/Player/AM_P_SwordDash.AM_P_SwordDash"));
+				}
+				Type = EAAAAttackType::Heavy;
+			}
+			else if (Type == EAAAAttackType::Light)
 			{
 				if (WeaponSettings->Animations.LightAttackCombos.Num() > 0)
 				{
@@ -189,7 +217,8 @@ void UAAAGameplayAbility_Melee::PlayAttack(EAAAAttackType Type)
 			{
 				if (WeaponSettings->Animations.HeavyAttackCombos.Num() > 0)
 				{
-					MontageToPlay = WeaponSettings->Animations.HeavyAttackCombos[0];
+					int32 HeavyIdx = (CurrentComboIndex > 0) ? (CurrentComboIndex % WeaponSettings->Animations.HeavyAttackCombos.Num()) : 0;
+					MontageToPlay = WeaponSettings->Animations.HeavyAttackCombos[HeavyIdx];
 				}
 				else if (WeaponSettings->Animations.LightAttackCombos.Num() > 0)
 				{
@@ -277,6 +306,21 @@ void UAAAGameplayAbility_Melee::PlayAttack(EAAAAttackType Type)
 		if (Type == EAAAAttackType::Light)
 		{
 			CurrentComboIndex++;
+			int32 LightCount = 3;
+			if (UAAACombatComponent* CC = GetAvatarActorFromActorInfo()->FindComponentByClass<UAAACombatComponent>())
+			{
+				if (UAAAWeaponSettings* WS = CC->GetCurrentWeaponSettings())
+				{
+					if (WS->Animations.LightAttackCombos.Num() > 0)
+					{
+						LightCount = WS->Animations.LightAttackCombos.Num();
+					}
+				}
+			}
+			if (CurrentComboIndex >= LightCount)
+			{
+				CurrentComboIndex = 0;
+			}
 		}
 	}
 	else
@@ -296,6 +340,10 @@ void UAAAGameplayAbility_Melee::PlayAttack(EAAAAttackType Type)
 		if (Type == EAAAAttackType::Light)
 		{
 			CurrentComboIndex++;
+			if (CurrentComboIndex >= 3)
+			{
+				CurrentComboIndex = 0;
+			}
 		}
 	}
 }
@@ -394,6 +442,16 @@ void UAAAGameplayAbility_Melee::ApplyAttackAssist(EAAAAttackType Type)
 		if (Speed > 1.0f)
 		{
 			UAAAMoverUtils::ApplyVelocityBurst(Avatar, LungeDir * Speed, Settings->LungeDuration);
+		}
+	}
+	else if (Type == EAAAAttackType::Heavy)
+	{
+		if (const ACharacter* Char = Cast<ACharacter>(Avatar))
+		{
+			if (Char->GetCharacterMovement() && Char->GetCharacterMovement()->IsFalling())
+			{
+				UAAAMoverUtils::ApplyVelocityBurst(Avatar, LungeDir * 500.0f + FVector(0.0f, 0.0f, -400.0f), 0.2f);
+			}
 		}
 	}
 }
@@ -564,6 +622,15 @@ void UAAAGameplayAbility_Melee::ClearAbilityTimers()
 
 void UAAAGameplayAbility_Melee::OnMontageCompleted()
 {
+	if (UAAACombatComponent* CombatComp = GetAvatarActorFromActorInfo()->FindComponentByClass<UAAACombatComponent>())
+	{
+		EAAAAttackType NextType;
+		if (CombatComp->ConsumeBufferedAttack(NextType))
+		{
+			PlayAttack(NextType);
+			return;
+		}
+	}
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 

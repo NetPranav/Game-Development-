@@ -125,7 +125,8 @@ void ARRHUD::DrawDamageFx()
 		}
 	}
 
-	float LowHealthTerm = FMath::SmoothStep(0.55f, 0.1f, HealthFraction);
+	// 0 above 55% health, 1 at 10% (SmoothStep needs A < B; the reversed call read full health as "dying")
+	float LowHealthTerm = 1.0f - FMath::SmoothStep(0.1f, 0.55f, HealthFraction);
 	
 	// Heartbeat pulse: two quick beats per second scaled by 1 - healthFraction
 	float BeatTime = FMath::Fmod(Now, 1.0);
@@ -133,8 +134,9 @@ void ARRHUD::DrawDamageFx()
 	if (BeatTime < 0.2f) HeartPulse = FMath::Sin(BeatTime * PI / 0.2f);
 	else if (BeatTime > 0.3f && BeatTime < 0.5f) HeartPulse = FMath::Sin((BeatTime - 0.3f) * PI / 0.2f);
 	
-	float PersistentPulse = LowHealthTerm * HeartPulse * (1.0f - HealthFraction);
-	float EffectAlpha = (0.25f + 0.55f * HitPulse) + PersistentPulse;
+	// nothing at all on screen when healthy; a hit flashes the edges, low health keeps a heartbeat vignette
+	float PersistentPulse = LowHealthTerm * (0.22f + 0.3f * HeartPulse);
+	float EffectAlpha = 0.6f * HitPulse + PersistentPulse;
 	if (EffectAlpha > 1.0f) EffectAlpha = 1.0f;
 
 	FLinearColor BloodColor(0.55f, 0.02f, 0.02f, 0.0f);

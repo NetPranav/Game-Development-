@@ -17,29 +17,29 @@
 
 namespace
 {
-	float Ease(float T) { T = FMath::Clamp(T, 0.0f, 1.0f); return T * T * (3.0f - 2.0f * T); }
-	float Fade(double T, double Start, double Dur) { return Ease((float)((T - Start) / FMath::Max(0.0001, Dur))); }
+	float Iv_Ease(float T) { T = FMath::Clamp(T, 0.0f, 1.0f); return T * T * (3.0f - 2.0f * T); }
+	float Iv_Fade(double T, double Start, double Dur) { return Iv_Ease((float)((T - Start) / FMath::Max(0.0001, Dur))); }
 
-	const FLinearColor Amber(1.0f, 0.62f, 0.16f, 1.0f);
-	const FLinearColor Cyan(0.45f, 0.85f, 1.0f, 1.0f);
-	FLinearColor WithA(FLinearColor C, float A) { C.A = A; return C; }
+	const FLinearColor Iv_Amber(1.0f, 0.62f, 0.16f, 1.0f);
+	const FLinearColor Iv_Cyan(0.45f, 0.85f, 1.0f, 1.0f);
+	FLinearColor Iv_WithA(FLinearColor C, float A) { C.A = A; return C; }
 
-	uint32 GearHash(const FRRGearData& G)
+	uint32 Iv_GearHash(const FRRGearData& G)
 	{
 		return G.Seed != 0 ? (uint32)(G.Seed ^ (G.Seed >> 32)) : GetTypeHash(G.Id);
 	}
 
-	FString KindName(ERRGearKind K)
+	FString Iv_KindName(ERRGearKind K)
 	{
 		return K == ERRGearKind::Weapon ? TEXT("WEAPON") : (K == ERRGearKind::Armor ? TEXT("ARMOR") : TEXT("ABILITY"));
 	}
 
-	int32 MainStat(const FRRGearData& G)
+	int32 Iv_MainStat(const FRRGearData& G)
 	{
 		return G.Kind == ERRGearKind::Weapon ? G.Damage : (G.Kind == ERRGearKind::Armor ? G.Armor : G.Power);
 	}
 
-	FString StatLabel(const FRRGearData& G)
+	FString Iv_StatLabel(const FRRGearData& G)
 	{
 		return G.Kind == ERRGearKind::Weapon ? TEXT("DMG") : (G.Kind == ERRGearKind::Armor ? TEXT("ARM") : TEXT("PWR"));
 	}
@@ -48,8 +48,8 @@ namespace
 void ARRHUD::DrawGearIcon(ERRGearKind Kind, int64 Seed, float X, float Y, float S, float Alpha)
 {
 	const uint32 H = Seed != 0 ? (uint32)(Seed ^ (Seed >> 32)) : 0u;
-	const FLinearColor Accent = WithA(FLinearColor::MakeFromHSV8((uint8)(H & 0xFF), 150, 255), Alpha);
-	const FLinearColor Steel(0.78f, 0.82f, 0.88f, Alpha);
+	const FLinearColor Accent = Iv_WithA(FLinearColor::MakeFromHSV8((uint8)(H & 0xFF), 150, 255), Alpha);
+	const FLinearColor Iv_Steel(0.78f, 0.82f, 0.88f, Alpha);
 	const FLinearColor Bright(0.96f, 0.98f, 1.0f, Alpha);
 	const FLinearColor Dark(0.20f, 0.16f, 0.13f, Alpha);
 	const float CX = X + S * 0.5f, CY = Y + S * 0.5f;
@@ -61,11 +61,11 @@ void ARRHUD::DrawGearIcon(ERRGearKind Kind, int64 Seed, float X, float Y, float 
 		auto At = [&](float T) { return FVector2D(CX + Dir.X * T * S, CY + Dir.Y * T * S); };
 		const float BladeW = (bThin ? 0.065f : 0.100f) * S;
 		const FVector2D BC = At(0.12f);
-		RotRect(BC.X, BC.Y, BladeW, 0.56f * S, 45.0f, Steel);
+		RotRect(BC.X, BC.Y, BladeW, 0.56f * S, 45.0f, Iv_Steel);
 		RotRect(BC.X, BC.Y, BladeW * 0.32f, 0.56f * S, 45.0f, Bright);
 		const FVector2D E = At(0.40f);
 		const FVector2D Tip = FVector2D(E.X + Dir.X * 0.10f * S, E.Y + Dir.Y * 0.10f * S);
-		Tri(FVector2D(E.X + N.X * BladeW * 0.5f, E.Y + N.Y * BladeW * 0.5f), FVector2D(E.X - N.X * BladeW * 0.5f, E.Y - N.Y * BladeW * 0.5f), Tip, Steel);
+		Tri(FVector2D(E.X + N.X * BladeW * 0.5f, E.Y + N.Y * BladeW * 0.5f), FVector2D(E.X - N.X * BladeW * 0.5f, E.Y - N.Y * BladeW * 0.5f), Tip, Iv_Steel);
 		const FVector2D G = At(-0.17f);
 		RotRect(G.X, G.Y, 0.31f * S, 0.055f * S, 45.0f, Accent);
 		const FVector2D Gr = At(-0.27f);
@@ -104,7 +104,7 @@ void ARRHUD::DrawGearIcon(ERRGearKind Kind, int64 Seed, float X, float Y, float 
 				Tri(FVector2D(CX, CY), FVector2D(CX + FMath::Cos(A0) * R * Sc, CY + FMath::Sin(A0) * R * Sc), FVector2D(CX + FMath::Cos(A1) * R * Sc, CY + FMath::Sin(A1) * R * Sc), Col);
 			}
 		};
-		Octa(1.0f, WithA(Accent, Alpha * 0.55f));
+		Octa(1.0f, Iv_WithA(Accent, Alpha * 0.55f));
 		Octa(0.80f, FLinearColor(0.07f, 0.08f, 0.10f, Alpha));
 		auto P = [&](float PX, float PY) { return FVector2D(CX + PX * S, CY + PY * S); };
 		Tri(P(0.10f, -0.30f), P(-0.12f, 0.04f), P(0.02f, 0.04f), Bright);
@@ -129,7 +129,7 @@ void ARRHUD::DrawInventoryWallet(float PX, float PY, float PW, float PH)
 
 	Box(PX, PY, PW, PH, FLinearColor(0.05f, 0.055f, 0.06f, 0.9f));
 	Frame(PX, PY, PW, PH, FMath::Max(1.0f, U(1.5f)), FLinearColor(0.7f, 0.74f, 0.8f, 0.3f));
-	Brackets(PX - U(6.0f), PY - U(6.0f), PW + U(12.0f), PH + U(12.0f), U(24.0f), FMath::Max(2.0f, U(2.5f)), Amber);
+	Brackets(PX - U(6.0f), PY - U(6.0f), PW + U(12.0f), PH + U(12.0f), U(24.0f), FMath::Max(2.0f, U(2.5f)), Iv_Amber);
 
 	float Y = PY + U(34.0f);
 	const float LX = PX + U(44.0f), RX = PX + PW - U(44.0f);
@@ -145,8 +145,8 @@ void ARRHUD::DrawInventoryWallet(float PX, float PY, float PW, float PH)
 	Row(TEXT("NETWORK"), TEXT("SUI TESTNET"), FLinearColor(0.8f, 0.85f, 0.95f, 1.0f));
 	Row(TEXT("STATUS"), bConn ? TEXT("CONNECTED") : TEXT("NOT CONNECTED"), bConn ? FLinearColor(0.3f, 0.95f, 0.55f, 1.0f) : FLinearColor(0.95f, 0.38f, 0.35f, 1.0f));
 	Row(TEXT("ADDRESS"), bConn ? ShortAddress(Sui->GetWalletAddress()) : FString(TEXT("-")), FLinearColor(0.85f, 0.88f, 0.92f, 1.0f));
-	Row(TEXT("CREDITS"), bConn ? FString::FromInt(Sui->GetCredits()) : FString(TEXT("-")), Amber);
-	Row(TEXT("GEAR NFTS"), bConn ? FString::FromInt(Sui->GetOwnedGear().Num()) : FString(TEXT("-")), Cyan);
+	Row(TEXT("CREDITS"), bConn ? FString::FromInt(Sui->GetCredits()) : FString(TEXT("-")), Iv_Amber);
+	Row(TEXT("GEAR NFTS"), bConn ? FString::FromInt(Sui->GetOwnedGear().Num()) : FString(TEXT("-")), Iv_Cyan);
 
 	// two buttons
 	const float BW = (PW - U(88.0f) - U(24.0f)) * 0.5f;
@@ -157,7 +157,7 @@ void ARRHUD::DrawInventoryWallet(float PX, float PY, float PW, float PH)
 		const float BX = LX + b * (BW + U(24.0f));
 		const bool bHover = Hit(BX, BY, BW, BH);
 		Box(BX, BY, BW, BH, bHover ? FLinearColor(1.0f, 0.62f, 0.16f, 0.25f) : FLinearColor(1, 1, 1, 0.06f));
-		Frame(BX, BY, BW, BH, FMath::Max(1.0f, U(1.5f)), bHover ? Amber : FLinearColor(1, 1, 1, 0.3f));
+		Frame(BX, BY, BW, BH, FMath::Max(1.0f, U(1.5f)), bHover ? Iv_Amber : FLinearColor(1, 1, 1, 0.3f));
 		Txt(b == 0 ? TEXT("CONNECT WALLET  (F2)") : TEXT("REFRESH GEAR  (F3)"), BX + BW * 0.5f, BY + U(16.0f), 26.0f, FLinearColor::White, 0.5f, 3.0f);
 		if (bHover && bClickL && Sui)
 		{
@@ -174,7 +174,7 @@ void ARRHUD::DrawInventory()
 	URRLoadoutComponent* Loadout = Pawn ? Pawn->FindComponentByClass<URRLoadoutComponent>() : nullptr;
 
 	const double T = Now - InvOpenTime;
-	const float In = Fade(T, 0.0, 0.25);
+	const float In = Iv_Fade(T, 0.0, 0.25);
 
 	// ---------------- backdrop ----------------
 	Box(0.0f, 0.0f, CanvasW, CanvasH, FLinearColor(0.012f, 0.014f, 0.017f, 0.97f));
@@ -193,9 +193,9 @@ void ARRHUD::DrawInventory()
 
 	// ---------------- header ----------------
 	Txt(TEXT("INVENTORY"), MX, MY, 58.0f, FLinearColor(0.94f, 0.95f, 0.97f, In), 0.0f, 12.0f);
-	Txt(TEXT("KAIZEEN  //  FIELD KIT"), MX + U(4.0f), MY + U(66.0f), 18.0f, WithA(Amber, In), 0.0f, 8.0f);
+	Txt(TEXT("KAIZEEN  //  FIELD KIT"), MX + U(4.0f), MY + U(66.0f), 18.0f, Iv_WithA(Iv_Amber, In), 0.0f, 8.0f);
 	Box(MX, MY + U(98.0f), CanvasW - MX * 2.0f, FMath::Max(1.0f, U(1.5f)), FLinearColor(1, 1, 1, 0.22f * In));
-	Box(MX, MY + U(98.0f), U(180.0f), FMath::Max(2.0f, U(3.0f)), WithA(Amber, In));
+	Box(MX, MY + U(98.0f), U(180.0f), FMath::Max(2.0f, U(3.0f)), Iv_WithA(Iv_Amber, In));
 
 	// tabs (top right)
 	{
@@ -210,7 +210,7 @@ void ARRHUD::DrawInventory()
 			if (bHover && bClickL) { ActiveTab = i; bClickL = false; }
 			const bool bAct = (ActiveTab == i);
 			Txt(Tabs[i], TX, TY, 30.0f, bAct ? FLinearColor(1, 1, 1, In) : FLinearColor(0.5f, 0.53f, 0.57f, In), 0.0f, 6.0f);
-			if (bAct) Box(TX, TY + U(44.0f), W, FMath::Max(2.0f, U(3.0f)), WithA(Amber, In));
+			if (bAct) Box(TX, TY + U(44.0f), W, FMath::Max(2.0f, U(3.0f)), Iv_WithA(Iv_Amber, In));
 			TX -= U(52.0f);
 		}
 		if (KeyPressed(EKeys::Q)) ActiveTab = 0;
@@ -280,7 +280,7 @@ void ARRHUD::DrawInventory()
 		const bool bHover = Hit(LX, SY, LW, SlotH);
 		if (bHover) HoverSlot = k;
 		Box(LX, SY, LW, SlotH, bHover ? FLinearColor(0.15f, 0.15f, 0.14f, 0.95f) : FLinearColor(0.085f, 0.095f, 0.105f, 0.95f));
-		Frame(LX, SY, LW, SlotH, 1.0f, bEq[k] ? WithA(Amber, 0.75f) : FLinearColor(1, 1, 1, 0.22f));
+		Frame(LX, SY, LW, SlotH, 1.0f, bEq[k] ? Iv_WithA(Iv_Amber, 0.75f) : FLinearColor(1, 1, 1, 0.22f));
 
 		const float Ico = SlotH - U(16.0f);
 		Box(LX + U(8.0f), SY + U(8.0f), Ico, Ico, FLinearColor(0.03f, 0.035f, 0.04f, 1.0f));
@@ -289,13 +289,13 @@ void ARRHUD::DrawInventory()
 		Txt(FString::FromInt(k + 1), LX + U(11.0f), SY + U(8.0f), 17.0f, FLinearColor(0.05f, 0.05f, 0.05f, 1.0f), 0.0f, 0.0f, false);
 
 		const float TX = LX + Ico + U(30.0f);
-		Txt(KindName(Kinds[k]), TX, SY + U(10.0f), 18.0f, FLinearColor(0.5f, 0.53f, 0.57f, 1.0f), 0.0f, 5.0f);
+		Txt(Iv_KindName(Kinds[k]), TX, SY + U(10.0f), 18.0f, FLinearColor(0.5f, 0.53f, 0.57f, 1.0f), 0.0f, 5.0f);
 		if (bEq[k])
 		{
 			FRRInventoryItem Tmp; Tmp.Gear = Eq[k];
 			DrawItemIcon(Tmp, LX + U(8.0f) + Ico * 0.05f, SY + U(8.0f) + Ico * 0.05f, Ico * 0.9f, 1.0f);
 			Txt(Eq[k].Name.ToUpper(), TX, SY + U(34.0f), 28.0f, FLinearColor::White, 0.0f, 2.0f);
-			Txt(FString::Printf(TEXT("%s %d    LV %d"), *StatLabel(Eq[k]), MainStat(Eq[k]), Eq[k].Level), TX, SY + U(70.0f), 22.0f, Cyan, 0.0f, 2.0f);
+			Txt(FString::Printf(TEXT("%s %d    LV %d"), *Iv_StatLabel(Eq[k]), Iv_MainStat(Eq[k]), Eq[k].Level), TX, SY + U(70.0f), 22.0f, Iv_Cyan, 0.0f, 2.0f);
 		}
 		else
 		{
@@ -336,7 +336,7 @@ void ARRHUD::DrawInventory()
 		if (CH > U(50.0f))
 		{
 			Box(LX, CondY, LW, CH, FLinearColor(0.03f, 0.04f, 0.045f, 0.95f));
-			Frame(LX, CondY, LW, CH, 1.0f, WithA(Col, 0.55f));
+			Frame(LX, CondY, LW, CH, 1.0f, Iv_WithA(Col, 0.55f));
 			Txt(Word, LX + U(22.0f), CondY + CH * 0.5f - U(24.0f), 38.0f, Col, 0.0f, 5.0f);
 			Txt(FString::Printf(TEXT("HP %d / %d"), FMath::RoundToInt(Hp), FMath::RoundToInt(MaxHp)), LX + U(24.0f), CondY + CH - U(30.0f), 18.0f, FLinearColor(0.6f, 0.63f, 0.67f, 1.0f), 0.0f, 3.0f);
 
@@ -358,7 +358,7 @@ void ARRHUD::DrawInventory()
 				else if (Ph > 0.50f && Ph < 0.62f) V = 0.14f * FMath::Sin((Ph - 0.50f) / 0.12f * PI);
 				const FVector2D Cur(EX + EW * Xn, EY - V * Amp);
 				const float Fall = FMath::Clamp(Xn * 1.6f, 0.0f, 1.0f); // trail fades in from the left
-				Line(Prev.X, Prev.Y, Cur.X, Cur.Y, FMath::Max(1.5f, U(2.2f)), WithA(Col, 0.15f + 0.85f * Fall));
+				Line(Prev.X, Prev.Y, Cur.X, Cur.Y, FMath::Max(1.5f, U(2.2f)), Iv_WithA(Col, 0.15f + 0.85f * Fall));
 				Prev = Cur;
 			}
 			CondY += CH + U(16.0f);
@@ -413,19 +413,19 @@ void ARRHUD::DrawInventory()
 			const bool bHover = Hit(CX, CY, CellS, CellS);
 			if (bHover) { HoverCell = Idx; if (bMouseMoved) InvSel = Idx; }
 			const bool bSelected = (InvSel == Idx);
-			const float Cell = Fade(T, 0.02 * (r * Cols + c), 0.25); // cells appear in a quick cascade
+			const float Cell = Iv_Fade(T, 0.02 * (r * Cols + c), 0.25); // cells appear in a quick cascade
 
 			if (Idx < NumItems)
 			{
 				const FRRInventoryItem& It = Inv[Idx];
 				const bool bE = IsEquipped(It.Gear);
 				Box(CX, CY, CellS, CellS, bE ? FLinearColor(0.16f, 0.125f, 0.065f, 0.96f * Cell) : FLinearColor(0.105f, 0.115f, 0.125f, 0.96f * Cell));
-				Frame(CX, CY, CellS, CellS, 1.0f, bE ? WithA(Amber, 0.8f * Cell) : FLinearColor(1, 1, 1, 0.22f * Cell));
+				Frame(CX, CY, CellS, CellS, 1.0f, bE ? Iv_WithA(Iv_Amber, 0.8f * Cell) : FLinearColor(1, 1, 1, 0.22f * Cell));
 				DrawItemIcon(It, CX + CellS * 0.14f, CY + CellS * 0.12f, CellS * 0.72f, Cell);
 
 				// corner tab: E (equipped) or the 1-9 hotkey
 				const float Tab = CellS * 0.30f;
-				Tri(FVector2D(CX, CY), FVector2D(CX + Tab, CY), FVector2D(CX, CY + Tab), bE ? WithA(Amber, Cell) : FLinearColor(0.88f, 0.88f, 0.88f, 0.9f * Cell));
+				Tri(FVector2D(CX, CY), FVector2D(CX + Tab, CY), FVector2D(CX, CY + Tab), bE ? Iv_WithA(Iv_Amber, Cell) : FLinearColor(0.88f, 0.88f, 0.88f, 0.9f * Cell));
 				if (bE) Txt(TEXT("E"), CX + CellS * 0.035f, CY + CellS * 0.005f, 20.0f, FLinearColor(0.08f, 0.05f, 0.0f, Cell), 0.0f, 0.0f, false);
 				else if (Idx < 9) Txt(FString::FromInt(Idx + 1), CX + CellS * 0.035f, CY + CellS * 0.005f, 20.0f, FLinearColor(0.05f, 0.05f, 0.05f, Cell), 0.0f, 0.0f, false);
 
@@ -435,7 +435,7 @@ void ARRHUD::DrawInventory()
 					Box(CX + CellS - NW, CY, NW, CellS * 0.17f, FLinearColor(0.1f, 0.45f, 0.75f, 0.95f * Cell));
 					Txt(TEXT("NFT"), CX + CellS - NW * 0.5f, CY + CellS * 0.005f, 15.0f, FLinearColor(1, 1, 1, Cell), 0.5f, 1.0f, false);
 				}
-				Txt(FString::FromInt(MainStat(It.Gear)), CX + CellS - U(8.0f), CY + CellS - U(32.0f), 28.0f, FLinearColor(0.55f, 1.0f, 0.65f, Cell), 1.0f, 0.0f);
+				Txt(FString::FromInt(Iv_MainStat(It.Gear)), CX + CellS - U(8.0f), CY + CellS - U(32.0f), 28.0f, FLinearColor(0.55f, 1.0f, 0.65f, Cell), 1.0f, 0.0f);
 				Txt(FString::Printf(TEXT("LV%d"), It.Gear.Level), CX + U(8.0f), CY + CellS - U(26.0f), 16.0f, FLinearColor(0.6f, 0.63f, 0.67f, Cell), 0.0f, 1.0f, false);
 			}
 			else
@@ -452,7 +452,7 @@ void ARRHUD::DrawInventory()
 				const float Pulse = 0.5f + 0.5f * FMath::Sin((float)Now * 5.0f);
 				Box(CX, CY, CellS, CellS, FLinearColor(1, 1, 1, 0.05f + 0.05f * Pulse));
 				Frame(CX - 1.0f, CY - 1.0f, CellS + 2.0f, CellS + 2.0f, FMath::Max(2.0f, U(2.5f)), FLinearColor(1, 1, 1, 0.95f));
-				Brackets(CX - U(5.0f), CY - U(5.0f), CellS + U(10.0f), CellS + U(10.0f), CellS * 0.22f, FMath::Max(2.0f, U(2.5f)), WithA(Amber, 0.6f + 0.4f * Pulse));
+				Brackets(CX - U(5.0f), CY - U(5.0f), CellS + U(10.0f), CellS + U(10.0f), CellS * 0.22f, FMath::Max(2.0f, U(2.5f)), Iv_WithA(Iv_Amber, 0.6f + 0.4f * Pulse));
 			}
 		}
 	}
@@ -465,7 +465,7 @@ void ARRHUD::DrawInventory()
 		Box(SBX, GridTop, U(4.0f), SBH, FLinearColor(1, 1, 1, 0.1f));
 		const float Th = SBH * VisRows / TotalRows;
 		const float Frac = (float)InvScrollRow / (TotalRows - VisRows);
-		Box(SBX, GridTop + (SBH - Th) * Frac, U(4.0f), Th, WithA(Amber, 0.9f));
+		Box(SBX, GridTop + (SBH - Th) * Frac, U(4.0f), Th, Iv_WithA(Iv_Amber, 0.9f));
 	}
 
 	// ================= actions =================
@@ -504,7 +504,7 @@ void ARRHUD::DrawInventory()
 				float Y = DY + U(14.0f);
 				Txt(G.Name.ToUpper(), LX + U(20.0f), Y, 30.0f, FLinearColor::White, 0.0f, 2.0f);
 				Y += U(40.0f);
-				Txt(FString::Printf(TEXT("%s  -  %s"), *KindName(G.Kind), bChain ? TEXT("ON-CHAIN NFT") : TEXT("STARTER KIT")), LX + U(20.0f), Y, 18.0f, bChain ? Cyan : FLinearColor(0.6f, 0.63f, 0.67f, 1.0f), 0.0f, 3.0f);
+				Txt(FString::Printf(TEXT("%s  -  %s"), *Iv_KindName(G.Kind), bChain ? TEXT("ON-CHAIN NFT") : TEXT("STARTER KIT")), LX + U(20.0f), Y, 18.0f, bChain ? Iv_Cyan : FLinearColor(0.6f, 0.63f, 0.67f, 1.0f), 0.0f, 3.0f);
 				Y += U(32.0f);
 
 				const TCHAR* Flavor = G.Kind == ERRGearKind::Weapon ? TEXT("Edge-tuned alloy blade. Click once, twice, three times: the third cut is a finisher.")

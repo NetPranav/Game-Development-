@@ -61,3 +61,15 @@ Sui/contracts/Published.toml
 .gemini/
 .DS_Store
 Thumbs.db
+
+# Raw downloaded sources (re-importable; the imported .uasset files under Content/RR are tracked)
+GameAnimationSample/ExternalAnims/**
+GameAnimationSample/ExternalAudio/**
+GameAnimationSample/ExternalModels/**
+!GameAnimationSample/ExternalAnims/**/
+!GameAnimationSample/ExternalAudio/**/
+!GameAnimationSample/ExternalModels/**/
+!GameAnimationSample/External*/**/LICENSE*
+!GameAnimationSample/External*/**/License*
+GameAnimationSample/*.zip
+GameAnimationSample/*.glb

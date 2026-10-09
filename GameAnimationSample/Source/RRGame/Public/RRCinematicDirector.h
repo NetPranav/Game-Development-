@@ -92,6 +92,12 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<URRCinematicSequence> Active;
 
+	/** Short global slow motion with half letterbox (deathblows). */
+	void PlayMoment(float Dilation, float RealSeconds);
+	bool bMoment = false;
+	double MomentEnd = 0.0;
+	FDelegateHandle DeathblowHandle;
+
 	FDelegateHandle BossBeginHandle;
 	FDelegateHandle BossContactHandle;
 };

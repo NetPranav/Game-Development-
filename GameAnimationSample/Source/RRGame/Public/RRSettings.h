@@ -43,7 +43,31 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "RR|Sui")
 	FString SuiSidecarUrl = TEXT("http://127.0.0.1:3001");
 
-	/** Meshes for swords A and B */
+	/** Spawn ambient NPCs (Game Animation Sample characters, one per look) around the arena when the match starts. */
+	UPROPERTY(Config, EditAnywhere, Category = "RR|NPC")
+	bool bSpawnNpcs = true;
+
+	/** Pawn used for NPCs: the sample's CharacterMovement sandbox character (motion matching locomotion). */
+	UPROPERTY(Config, EditAnywhere, Category = "RR|NPC")
+	TSoftClassPtr<APawn> NpcPawnClass;
+
+	/** One NPC is spawned per entry (retargeted display actors: UE4 mannequin, Quinn, Echo, Twinblast, MetaHuman, robot...). */
+	UPROPERTY(Config, EditAnywhere, Category = "RR|NPC")
+	TArray<TSoftClassPtr<AActor>> NpcVisualClasses;
+
+	/** Distance of the NPC ring from the player start (cm). */
+	UPROPERTY(Config, EditAnywhere, Category = "RR|NPC")
+	float NpcRingRadius = 1400.0f;
+
+	/** Cinematic post process (lens + focus on the player) spawned at match start. */
+	UPROPERTY(Config, EditAnywhere, Category = "RR|Visual")
+	bool bCinematicLook = true;
+
+	/** Meshes for swords A, B, and Fab Longsword */
 	UPROPERTY(Config, EditAnywhere, Category = "RR|Visual")
 	TArray<TSoftObjectPtr<UStaticMesh>> SwordMeshes;
+
+	/** Mesh for player shield */
+	UPROPERTY(Config, EditAnywhere, Category = "RR|Visual")
+	TSoftObjectPtr<UStaticMesh> ShieldMesh;
 };

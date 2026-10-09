@@ -71,6 +71,14 @@ void UAAAKnockbackSubsystem::OnHitConfirmed(AActor* Attacker, AActor* Victim, co
 	{
 		Distance = 55.0f; // Middle of 40-70
 	}
+	if (ASC && ASC->HasMatchingGameplayTag(FAAAGameplayTags::Get().State_Boss_Segmented))
+	{
+		Distance *= 0.3f; // bosses barely budge (Sekiro): a heavy hit nudges, a light hit almost nothing
+	}
+	if (ASC && ASC->HasMatchingGameplayTag(FAAAGameplayTags::Get().State_Combat_Parrying))
+	{
+		return; // deflected: no push
+	}
 
 	UAAAMoverUtils::ApplyVelocityBurst(Victim, AwayDir * (Distance / 0.2f), 0.2f);
 }

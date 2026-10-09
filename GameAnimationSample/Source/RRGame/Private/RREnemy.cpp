@@ -1,6 +1,10 @@
 // Copyright (c) AAA Multiplayer RPG. All Rights Reserved.
 
 #include "RREnemy.h"
+#include "RRGame.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 #include "Animation/AnimMontage.h"
@@ -85,6 +89,47 @@ void ARREnemy::StopIntroMontage()
 	}
 }
 
+void ARREnemy::DriveAnimVars()
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	UAnimInstance* Anim = MeshComp ? MeshComp->GetAnimInstance() : nullptr;
+	if (!Anim) return;
+
+	const float Speed = IsAlive() ? GetVelocity().Size2D() : 0.0f;
+	const UCharacterMovementComponent* Move = GetCharacterMovement();
+	const bool bAccel = Speed > 20.0f && Move && Move->GetCurrentAcceleration().SizeSquared2D() > 1.0f;
+
+	bool bAny = false;
+	UClass* C = Anim->GetClass();
+	if (FProperty* P = C->FindPropertyByName(TEXT("Speed")))
+	{
+		if (FFloatProperty* F = CastField<FFloatProperty>(P)) { F->SetPropertyValue_InContainer(Anim, Speed); bAny = true; }
+		else if (FDoubleProperty* D = CastField<FDoubleProperty>(P)) { D->SetPropertyValue_InContainer(Anim, Speed); bAny = true; }
+	}
+	if (FBoolProperty* B = CastField<FBoolProperty>(C->FindPropertyByName(TEXT("IsAccelerating"))))
+	{
+		B->SetPropertyValue_InContainer(Anim, bAccel);
+	}
+	if (FBoolProperty* B = CastField<FBoolProperty>(C->FindPropertyByName(TEXT("IsInAir"))))
+	{
+		B->SetPropertyValue_InContainer(Anim, Move && Move->IsFalling());
+	}
+
+	// In Greystone_AnimBlueprint, BlendListByBool_16 selects:
+	// Pose 0 (UpperBody LayeredBoneBlend) when (IsAccelerating && !FullBody),
+	// Pose 1 (FullBody slot pose from CachedPose_UpperBody) when (!IsAccelerating || FullBody).
+	// Setting FullBody = true ensures attacks, hit reactions, stuns, deaths, and locomotion montages
+	// evaluate across the entire skeleton instead of getting upper-body masked.
+	const UAnimMontage* ActiveMontage = Anim->GetCurrentActiveMontage();
+	const bool bFullBodyActive = (ActiveMontage != nullptr) || !IsAlive();
+	if (FBoolProperty* B = CastField<FBoolProperty>(C->FindPropertyByName(TEXT("FullBody"))))
+	{
+		B->SetPropertyValue_InContainer(Anim, bFullBodyActive);
+	}
+
+	bAnimVarsDriven = bAny && !FParse::Param(FCommandLine::Get(), TEXT("RRLocoMontage"));
+}
+
 void ARREnemy::UpdateLocomotion()
 {
 	if (!IsAlive()) return;
@@ -92,40 +137,103 @@ void ARREnemy::UpdateLocomotion()
 	UAnimInstance* Anim = MeshComp ? MeshComp->GetAnimInstance() : nullptr;
 	if (!Anim) return;
 
-	// something else (attack, hit reaction, stagger) owns the slot: do not fight it
 	UAnimMontage* Active = Anim->GetCurrentActiveMontage();
-	if (Active && Active != LocoMontage) return;
-
 	const FVector Vel = GetVelocity();
 	const float Speed = Vel.Size2D();
-	const FVector Local = GetActorTransform().InverseTransformVectorNoScale(Vel.GetSafeNormal2D());
+	const float Yaw = GetActorRotation().Yaw;
+	const float YawStep = FMath::FindDeltaAngleDegrees(LastLocoYaw, Yaw);
+	LastLocoYaw = Yaw;
 
-	const TCHAR* Name = TEXT("Idle");
-	if (Speed > 30.0f)
+	if (++LocoDebugTick % 10 == 0)
 	{
-		if (FMath::Abs(Local.X) >= FMath::Abs(Local.Y)) Name = Local.X >= 0.0f ? TEXT("Jog_Fwd") : TEXT("Jog_Bwd");
-		else Name = Local.Y >= 0.0f ? TEXT("Jog_Right") : TEXT("Jog_Left");
+		UE_LOG(LogRR, Verbose, TEXT("Loco %s: speed=%.0f active=%s loco=%s current=%s"), *GetName(), Speed,
+			*GetNameSafe(Active), *GetNameSafe(LocoMontage), *LocoCurrent.ToString());
 	}
 
-	const FName Wanted(Name);
-	if (Wanted == LocoCurrent && Active == LocoMontage && LocoMontage) return;
+	// An action (attack, hit reaction, stagger, taunt, death...) owns the slot: do not fight it.
+	if (Active && Active != LocoMontage)
+	{
+		TurnAccum = 0.0f;
+		return;
+	}
 
-	const FString Path = FString::Printf(TEXT("/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/%s.%s"), Name, Name);
+	const FVector Local = GetActorTransform().InverseTransformVectorNoScale(Vel.GetSafeNormal2D());
+	const bool bMoving = Speed > 30.0f;
+	const bool bForward = bMoving && Local.X > 0.5f;   // within ~60 deg of facing
+
+	FName Wanted = NAME_None;
+	float Rate = 1.0f;
+	if (bMoving && !bForward)
+	{
+		if (FMath::Abs(Local.X) >= FMath::Abs(Local.Y))
+		{
+			Wanted = TEXT("Jog_Bwd");
+		}
+		else
+		{
+			Wanted = Local.Y >= 0.0f ? FName(TEXT("Jog_Right")) : FName(TEXT("Jog_Left"));
+		}
+		Rate = FMath::Clamp(Speed / 400.0f, 0.55f, 1.25f);
+		TurnAccum = 0.0f;
+	}
+	else if (!bMoving)
+	{
+		TurnAccum = FMath::Abs(YawStep) > 1.0f ? TurnAccum + YawStep : TurnAccum * 0.5f;
+		if (FMath::Abs(TurnAccum) > 40.0f && LocoCurrent != TEXT("Turn"))
+		{
+			Wanted = TurnAccum > 0.0f ? FName(TEXT("Turn_Right_90")) : FName(TEXT("Turn_Left_90"));
+			Rate = 1.5f;
+			TurnAccum = 0.0f;
+		}
+	}
+	else // bMoving && bForward: Closing in / chasing player
+	{
+		Wanted = TEXT("Jog_Fwd");
+		Rate = FMath::Clamp(Speed / 420.0f, 0.6f, 1.3f);
+		TurnAccum = 0.0f;
+	}
+
+	if (Wanted.IsNone())
+	{
+		// Smoothly blend out of locomotion into the idle pose
+		if (LocoMontage && Active == LocoMontage && LocoCurrent != TEXT("Turn"))
+		{
+			Anim->Montage_Stop(0.25f, LocoMontage);
+			LocoMontage = nullptr;
+			LocoCurrent = NAME_None;
+		}
+		else if (!Active)
+		{
+			LocoMontage = nullptr;
+			LocoCurrent = NAME_None;
+		}
+		return;
+	}
+
+	const bool bTurn = Wanted.ToString().StartsWith(TEXT("Turn_"));
+	if (Wanted == LocoCurrent && Active == LocoMontage && LocoMontage)
+	{
+		Anim->Montage_SetPlayRate(LocoMontage, Rate);
+		return;
+	}
+
+	const FString Name = Wanted.ToString();
+	const FString Path = FString::Printf(TEXT("/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/%s.%s"), *Name, *Name);
 	UAnimSequence* Seq = Cast<UAnimSequence>(StaticLoadObject(UAnimSequence::StaticClass(), nullptr, *Path));
 	if (!Seq) return;
-	LocoMontage = Anim->PlaySlotAnimationAsDynamicMontage(Seq, FName("DefaultSlot"), 0.2f, 0.25f, 1.0f, 1000);
-	LocoCurrent = Wanted;
-	if (LocoMontage && Speed > 30.0f)
-	{
-		Anim->Montage_SetPlayRate(LocoMontage, FMath::Clamp(Speed / 420.0f, 0.6f, 1.3f));
-	}
+	LocoMontage = Anim->PlaySlotAnimationAsDynamicMontage(Seq, AnimSlot, bTurn ? 0.15f : 0.25f, 0.25f, Rate, bTurn ? 1 : 1000);
+	LocoCurrent = bTurn ? FName(TEXT("Turn")) : Wanted;
 }
 
 void ARREnemy::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorldTimerManager().SetTimer(LocomotionTimer, this, &ARREnemy::UpdateLocomotion, 0.1f, true, 0.3f);
+	// Paragon Anim Blueprints route actions to UpperBody: ensure every montage (hit reactions, stun, death) plays on AnimSlot.
+	if (CombatComponent) { CombatComponent->MontageSlotOverride = AnimSlot; }
+	LastLocoYaw = GetActorRotation().Yaw;
+	GetWorldTimerManager().SetTimer(LocomotionTimer, this, &ARREnemy::UpdateLocomotion, 0.05f, true, 0.1f);
+	GetWorldTimerManager().SetTimer(AnimVarsTimer, this, &ARREnemy::DriveAnimVars, 0.01f, true, 0.05f);
 
 	GetWorldTimerManager().SetTimer(IntroStopTimer, this, &ARREnemy::StopIntroMontage, 0.1f, true);
 

@@ -96,6 +96,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "RR|Match")
 	void SetRespawnPoint(const FTransform& NewPoint);
 
+	virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) override;
+
+	// ---- duel platform (ARRArena placed in the level) ----
+	class ARRArena* GetArena() const { return Arena.Get(); }
+	/** The entry circle is live: pre-match, boss standing on the platform, not mid-entrance. */
+	bool CanEnterArena() const;
+	/** Called by the arena when the player held the entry circle: teleport in and start the duel. */
+	void RequestArenaMatch(class ARRArena* InArena);
+	/** Duel running (NPC spectators cheer, music is battle). */
+	bool IsDuelActive() const { return MatchState == ERRMatchState::InProgress && Arena.IsValid(); }
+	class ARRBoss* FindBoss() const;
+
 	UPROPERTY(BlueprintAssignable, Category = "RR|Match")
 	FOnMatchStateChangedSignature OnMatchStateChanged;
 
@@ -129,6 +141,19 @@ protected:
 	void StartPreMatch();
 	void StartWave();
 	void SetupPlayerLoadout();
+
+	/** One Game Animation Sample NPC per configured look, standing around the arena (URRSettings NPC section). */
+	void SpawnAmbientNpcs(const FVector& Center);
+	void SpawnArenaBoss(bool bEntrance);
+	void StartArenaDuel();
+	void ExitArena();
+	void TeleportPawn(APawn* Pawn, const FVector& Location, const FRotator& Facing, bool bEffects);
+	void SetMusic(uint8 State);
+	TWeakObjectPtr<class ARRArena> Arena;
+	bool bBossEntrancePlayed = false;
+	bool bDuelStarting = false;
+	FTimerHandle ArenaTimer;
+	bool bAmbientSpawned = false;
 
 	UFUNCTION()
 	void OnEnemyDied(ARREnemy* Enemy, int32 RemainingLiving);

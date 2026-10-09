@@ -35,6 +35,14 @@ struct FAAAHitReactionSet
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AAA|Combat|HitReactions")
 	TObjectPtr<UAnimMontage> Death;
+
+	/** Heavy hits (perilous attacks): thrown to the ground. Empty = use the directional reactions. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AAA|Combat|HitReactions")
+	TObjectPtr<UAnimMontage> Knockdown;
+
+	/** Played when the Knockdown montage ends (lying -> standing). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AAA|Combat|HitReactions")
+	TObjectPtr<UAnimMontage> GetUp;
 };
 
 UENUM(BlueprintType)
@@ -148,6 +156,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AAA|Combat")
 	float PlayMontageOnOwner(UAnimMontage* Montage, float PlayRate = 1.0f, FName StartSection = NAME_None);
 
+	/** When set, montages are replayed on this slot (for Anim Blueprints without DefaultSlot, e.g. Paragon "FullBody"). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AAA|Combat|HitReactions")
+	FName MontageSlotOverride = NAME_None;
+
 	UFUNCTION(BlueprintCallable, Category = "AAA|Combat")
 	void PlayHitReaction(AActor* Attacker, bool bHeavy);
 
@@ -238,6 +250,7 @@ private:
 
 	FTimerHandle RegenTimerHandle;
 	FTimerHandle InitRetryTimerHandle;
+	FTimerHandle GetUpTimerHandle;
 	FDelegateHandle ParriedEventHandle;
 	FDelegateHandle BlockedEventHandle;
 	FDelegateHandle StaggeredEventHandle;
