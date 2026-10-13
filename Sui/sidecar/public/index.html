@@ -595,6 +595,28 @@
     }
     .gear-row strong { color: var(--text); }
 
+    /* Disconnected Full-Screen Wallet Gate */
+    #disconnected-wallet-gate {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      padding: 20px;
+    }
+    .wallet-gate-card {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 440px;
+      padding: 36px 30px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+      text-align: center;
+    }
+
     /* Modals & Overlay */
     .modal-overlay {
       position: fixed;
@@ -603,7 +625,7 @@
       backdrop-filter: blur(4px);
       display: none;
       place-items: center;
-      z-index: 200;
+      z-index: 600;
       padding: 20px;
     }
     .modal-box {
@@ -683,6 +705,51 @@
   </style>
 </head>
 <body>
+
+  <!-- DISCONNECTED WALLET GATE (Only dialog visible when disconnected) -->
+  <div id="disconnected-wallet-gate">
+    <div class="wallet-gate-card">
+      <div class="brand-logo" style="width:52px; height:52px; font-size:22px; margin:0 auto 16px;">RR</div>
+      <div style="font-family:'Chakra Petch', sans-serif; font-size:22px; font-weight:700; color:var(--text); line-height:1.2;">
+        Robot Rumble
+      </div>
+      <div style="font-size:11px; font-weight:700; color:var(--text-dim); letter-spacing:0.8px; text-transform:uppercase; margin:4px 0 16px;">
+        Sui Blockchain Dashboard
+      </div>
+
+      <div style="display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:600; background:var(--green-subtle); border:1px solid rgba(22, 163, 74, 0.25); color:var(--green); margin-bottom:20px;">
+        <div class="status-dot"></div>
+        <span>Sui Testnet Live</span>
+      </div>
+
+      <div style="font-family:'Chakra Petch', sans-serif; font-size:16px; font-weight:700; color:var(--text); margin-bottom:6px;">
+        Connect Your Wallet
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); line-height:1.5; margin-bottom:24px;">
+        Connect a Sui-compatible wallet to access protocol telemetry, tokenomics, match rewards, and on-chain governance.
+      </p>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <button class="btn btn-cyan" id="btn-gate-connect" style="width:100%; padding:12px; font-size:13px;">
+          💼 Connect Sui Wallet
+        </button>
+
+        <div style="display:flex; align-items:center; gap:10px; margin:4px 0;">
+          <div style="flex:1; height:1px; background:var(--card-border);"></div>
+          <span style="font-size:10px; color:var(--text-dim); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Developer Mode</span>
+          <div style="flex:1; height:1px; background:var(--card-border);"></div>
+        </div>
+
+        <button class="btn btn-outline" id="btn-gate-pilot" style="width:100%; padding:12px 14px; font-size:12px; display:flex; justify-content:space-between; align-items:center; text-align:left;">
+          <div>
+            <div style="font-weight:700; color:var(--text);">Testnet Pilot Keypair</div>
+            <div style="font-size:11px; color:var(--cyan); font-family:'JetBrains Mono';">0xaf41...99f8 (Pre-funded)</div>
+          </div>
+          <span class="badge badge-purple" style="font-size:9px;">1-Click</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- SIDEBAR NAVIGATION -->
   <aside class="app-sidebar" id="app-sidebar">
@@ -1609,6 +1676,55 @@
       sidebar.classList.toggle('open');
     });
 
+    const gateOverlay = document.getElementById('disconnected-wallet-gate');
+    const gateConnectBtn = document.getElementById('btn-gate-connect');
+    const gatePilotBtn = document.getElementById('btn-gate-pilot');
+
+    function updateWalletGateUI() {
+      const sidebarEl = document.getElementById('app-sidebar');
+      const viewportEl = document.querySelector('.app-viewport');
+
+      if (isConnected && activeAddress) {
+        if (gateOverlay) gateOverlay.style.display = 'none';
+        if (sidebarEl) sidebarEl.style.display = 'flex';
+        if (viewportEl) viewportEl.style.display = 'flex';
+      } else {
+        if (gateOverlay) gateOverlay.style.display = 'flex';
+        if (sidebarEl) sidebarEl.style.display = 'none';
+        if (viewportEl) viewportEl.style.display = 'none';
+      }
+    }
+
+    function clearAllData() {
+      const ovTxs = document.getElementById('overview-txs-body');
+      if (ovTxs) ovTxs.innerHTML = '<tr><td colspan="5" class="empty-state">Wallet disconnected.</td></tr>';
+      const matchTxs = document.getElementById('matches-table-body');
+      if (matchTxs) matchTxs.innerHTML = '<tr><td colspan="7" class="empty-state">Wallet disconnected.</td></tr>';
+      const liveTxs = document.getElementById('txs-table-body');
+      if (liveTxs) liveTxs.innerHTML = '<tr><td colspan="6" class="empty-state">Wallet disconnected.</td></tr>';
+      const propsList = document.getElementById('proposals-list');
+      if (propsList) propsList.innerHTML = '<div class="empty-state">Wallet disconnected.</div>';
+      const gearGrid = document.getElementById('gear-grid-container');
+      if (gearGrid) gearGrid.innerHTML = '<div class="empty-state">Wallet disconnected.</div>';
+      const accGear = document.getElementById('acc-gear-grid');
+      if (accGear) accGear.innerHTML = '<div class="empty-state">Wallet disconnected.</div>';
+      const battles = document.getElementById('battles-table-body');
+      if (battles) battles.innerHTML = '<tr><td colspan="6" class="empty-state">Wallet disconnected.</td></tr>';
+      const upgs = document.getElementById('upgrades-table-body');
+      if (upgs) upgs.innerHTML = '<tr><td colspan="6" class="empty-state">Wallet disconnected.</td></tr>';
+      const mrkt = document.getElementById('market-table-body');
+      if (mrkt) mrkt.innerHTML = '<tr><td colspan="6" class="empty-state">Wallet disconnected.</td></tr>';
+      
+      const rrcCirc = document.getElementById('ov-kpi-rrc');
+      if (rrcCirc) rrcCirc.textContent = '-- RRC';
+      const rrcMinted = document.getElementById('ov-kpi-minted');
+      if (rrcMinted) rrcMinted.textContent = '-- RRC';
+      const rrcBurned = document.getElementById('ov-kpi-burned');
+      if (rrcBurned) rrcBurned.textContent = '-- RRC';
+      const matchesCount = document.getElementById('ov-kpi-matches');
+      if (matchesCount) matchesCount.textContent = '--';
+    }
+
     function updateWalletHeaderUI() {
       if (isConnected && activeAddress) {
         connectBtn.style.display = 'none';
@@ -1636,6 +1752,7 @@
       }
     }
     updateWalletHeaderUI();
+    updateWalletGateUI();
 
     // Dropdown toggle & click outside
     chipBtn.addEventListener('click', (e) => {
@@ -1676,8 +1793,9 @@
       localStorage.removeItem('rr_wallet_name');
       localStorage.removeItem('rr_session_token');
       dropdownMenu.style.display = 'none';
+      clearAllData();
       updateWalletHeaderUI();
-      loadAll();
+      updateWalletGateUI();
       showToast('Wallet disconnected.');
     });
 
@@ -1690,14 +1808,15 @@
       modal.style.display = 'none';
     }
     connectBtn.addEventListener('click', openWalletModal);
+    gateConnectBtn?.addEventListener('click', openWalletModal);
     if (accountConnectTrigger) accountConnectTrigger.addEventListener('click', openWalletModal);
     modalCloseBtn.addEventListener('click', closeWalletModal);
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closeWalletModal();
     });
 
-    // Developer Pilot option in modal
-    devPilotItem.addEventListener('click', () => {
+    // Pilot Keypair connection logic
+    function connectPilot() {
       activeAddress = '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
       walletName = 'Testnet Pilot (Dev Mode)';
       isConnected = true;
@@ -1707,10 +1826,14 @@
       localStorage.setItem('rr_wallet_name', walletName);
       closeWalletModal();
       updateWalletHeaderUI();
+      updateWalletGateUI();
       verifyNetwork(currentWallet, currentAccount);
       loadAll();
       showToast(`Connected as Testnet Pilot (${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)})`);
-    });
+    }
+
+    devPilotItem?.addEventListener('click', connectPilot);
+    gatePilotBtn?.addEventListener('click', connectPilot);
 
     // Discover Wallet Standard implementations
     function discoverWallets() {
@@ -1853,6 +1976,7 @@
 
         closeWalletModal();
         updateWalletHeaderUI();
+        updateWalletGateUI();
         loadAll();
         showToast(`Connected to ${wallet.name}!`);
 
@@ -2702,6 +2826,7 @@
     document.getElementById('btn-refresh-market')?.addEventListener('click', loadMarketplace);
 
     function loadAll() {
+      if (!isConnected || !activeAddress) return;
       loadOverview();
       loadMyAccount();
       loadGovernance();
