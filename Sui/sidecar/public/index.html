@@ -3,22 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Robot Rumble — Sui Blockchain Test Harness</title>
+  <title>Robot Rumble — Sui Blockchain Dashboard & Governance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: #111726;
-      --card-border: #1e293b;
+      --bg: #070a12;
+      --card-bg: #0e1526;
+      --card-hover: #131c33;
+      --card-border: #1b2845;
       --cyan: #00f0ff;
       --cyan-glow: rgba(0, 240, 255, 0.25);
       --amber: #f59e0b;
-      --purple: #8b5cf6;
+      --amber-glow: rgba(245, 158, 11, 0.25);
+      --purple: #a855f7;
       --green: #10b981;
       --red: #ef4444;
-      --text: #f1f5f9;
+      --text: #f8fafc;
       --text-dim: #94a3b8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,15 +29,19 @@
       color: var(--text);
       font-family: 'Inter', system-ui, sans-serif;
       min-height: 100vh;
-      padding: 24px;
+      overflow-x: hidden;
     }
     header {
+      background: rgba(14, 21, 38, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 16px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 24px;
-      border-bottom: 1px solid var(--card-border);
-      margin-bottom: 28px;
     }
     .brand {
       display: flex;
@@ -49,20 +55,30 @@
       border-radius: 10px;
       display: grid;
       place-items: center;
-      font-weight: 700;
+      font-weight: 800;
       font-family: 'Chakra Petch', sans-serif;
-      font-size: 20px;
+      font-size: 22px;
       color: #000;
+      box-shadow: 0 0 15px var(--cyan-glow);
     }
-    .brand h1 {
+    .brand-title {
       font-family: 'Chakra Petch', sans-serif;
-      font-size: 24px;
+      font-size: 22px;
+      font-weight: 700;
       letter-spacing: 0.5px;
       text-transform: uppercase;
+      background: linear-gradient(90deg, #fff, var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .brand p {
-      font-size: 13px;
+    .brand-sub {
+      font-size: 12px;
       color: var(--text-dim);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
     .net-badge {
       display: flex;
@@ -73,8 +89,9 @@
       color: var(--green);
       padding: 6px 14px;
       border-radius: 9999px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
+      font-family: 'Chakra Petch', sans-serif;
     }
     .net-dot {
       width: 8px;
@@ -83,366 +100,654 @@
       border-radius: 50%;
       box-shadow: 0 0 10px var(--green);
     }
-    .grid {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 24px;
-    }
-    @media (max-width: 960px) {
-      .grid { grid-template-columns: 1fr; }
-    }
-    .card {
-      background: var(--card-bg);
+    .wallet-chip {
+      background: #0a0f1d;
       border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 22px;
-      margin-bottom: 24px;
-    }
-    .card-title {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
       color: var(--cyan);
-      margin-bottom: 16px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 8px;
     }
-    .input-group {
-      margin-bottom: 14px;
+
+    /* Navigation Tabs */
+    nav.tab-bar {
+      display: flex;
+      gap: 8px;
+      padding: 16px 28px 0;
+      background: #090e1a;
+      border-bottom: 1px solid var(--card-border);
+      overflow-x: auto;
     }
-    label {
+    .tab-btn {
+      background: transparent;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      color: var(--text-dim);
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: #fff;
+    }
+    .tab-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+      background: rgba(0, 240, 255, 0.05);
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+
+    /* Main Container */
+    main {
+      padding: 28px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
       display: block;
+    }
+
+    /* Grid & Card Utilities */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--cyan), transparent);
+    }
+    .kpi-label {
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--text-dim);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
-    input {
-      width: 100%;
-      background: #0a0f1d;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
-      padding: 10px 14px;
+    .kpi-val {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
       color: #fff;
-      font-family: monospace;
-      font-size: 13px;
     }
-    input:focus {
-      outline: none;
-      border-color: var(--cyan);
-      box-shadow: 0 0 10px var(--cyan-glow);
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 6px;
     }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .card-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Buttons & Inputs */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      width: 100%;
-      padding: 12px 18px;
+      padding: 10px 18px;
       border: 0;
       border-radius: 8px;
       font-family: 'Chakra Petch', sans-serif;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 13px;
       letter-spacing: 0.5px;
       cursor: pointer;
       transition: all 0.2s ease;
       text-transform: uppercase;
     }
-    .btn-primary {
+    .btn-cyan {
       background: var(--cyan);
       color: #000;
     }
-    .btn-primary:hover {
-      box-shadow: 0 0 20px var(--cyan-glow);
-      filter: brightness(1.1);
+    .btn-cyan:hover {
+      box-shadow: 0 0 15px var(--cyan-glow);
     }
     .btn-amber {
       background: var(--amber);
       color: #000;
     }
     .btn-amber:hover {
-      filter: brightness(1.1);
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 15px var(--amber-glow);
     }
     .btn-outline {
       background: transparent;
       border: 1px solid var(--card-border);
-      color: var(--text);
+      color: var(--text-dim);
     }
     .btn-outline:hover {
       border-color: var(--cyan);
-      color: var(--cyan);
+      color: #fff;
     }
     .btn-sm {
-      padding: 8px 12px;
-      font-size: 12px;
-      width: auto;
-    }
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .stat-box {
-      background: #090e1a;
-      border: 1px solid #1e293b;
-      border-radius: 10px;
-      padding: 12px;
-    }
-    .stat-label {
+      padding: 6px 12px;
       font-size: 11px;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 4px;
     }
-    .stat-val {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-    }
-    .gear-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
-    }
-    .gear-card {
-      background: #0a0f1d;
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: 18px;
-      position: relative;
-      transition: all 0.2s;
-    }
-    .gear-card:hover {
-      border-color: var(--cyan);
-      transform: translateY(-2px);
-    }
-    .gear-kind {
-      display: inline-block;
-      font-size: 10px;
-      text-transform: uppercase;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      padding: 3px 8px;
-      border-radius: 6px;
-      margin-bottom: 8px;
-    }
-    .kind-weapon { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-    .kind-armor { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .kind-ability { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
-    .rarity-badge {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-    .rarity-Common { background: #334155; color: #cbd5e1; }
-    .rarity-Rare { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
-    .rarity-Epic { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid #9333ea; }
-    .rarity-Legendary { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #d97706; }
-    .gear-name {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-    .gear-stats {
-      font-size: 13px;
-      color: var(--text-dim);
-      margin-bottom: 14px;
-      line-height: 1.6;
-    }
-    .gear-id {
-      font-family: monospace;
-      font-size: 11px;
-      color: #64748b;
-      word-break: break-all;
-      margin-bottom: 12px;
-    }
-    .tx-item {
-      background: #0a0f1d;
-      border: 1px solid #1e293b;
+    input, select, textarea {
+      width: 100%;
+      background: #070c18;
+      border: 1px solid var(--card-border);
       border-radius: 8px;
-      padding: 12px 14px;
-      margin-bottom: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
       font-size: 13px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
-    .tx-digest {
-      font-family: monospace;
-      font-size: 12px;
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    /* Tables */
+    .table-responsive {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      color: var(--text-dim);
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(27, 40, 69, 0.5);
+      font-family: 'Inter', sans-serif;
+    }
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .digest-link {
+      font-family: 'JetBrains Mono', monospace;
       color: var(--cyan);
       text-decoration: none;
     }
-    .tx-digest:hover { text-decoration: underline; }
-    .empty-state {
-      text-align: center;
-      padding: 36px 20px;
-      color: var(--text-dim);
-      font-size: 14px;
-      border: 1px dashed #1e293b;
-      border-radius: 12px;
+    .digest-link:hover {
+      text-decoration: underline;
     }
-    #status-toast {
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'Chakra Petch', sans-serif;
+      text-transform: uppercase;
+    }
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: var(--green); }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
+    .badge-purple { background: rgba(168, 85, 247, 0.2); color: var(--purple); }
+
+    /* Proposal Cards */
+    .proposal-card {
+      background: #0a0f1f;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: border-color 0.2s ease;
+    }
+    .proposal-card:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+    }
+    .proposal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .proposal-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .progress-bar-bg {
+      background: #1e293b;
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+      margin: 8px 0 4px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+      border-radius: 999px;
+    }
+    .vote-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 14px 0;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    /* Gear Cards */
+    .gear-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+    }
+    .gear-card {
+      background: #0a0f1d;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+    }
+    .gear-card.rare { border-color: rgba(168, 85, 247, 0.5); }
+    .gear-card.common { border-color: var(--card-border); }
+    .gear-name {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin: 8px 0;
+    }
+    .gear-stats-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Toast */
+    #toast {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: #1e293b;
+      background: #111827;
       border: 1px solid var(--cyan);
-      color: #fff;
-      padding: 14px 20px;
+      padding: 14px 22px;
       border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      display: none;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
       z-index: 1000;
+      display: none;
       font-size: 13px;
-      max-width: 400px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-dim);
     }
   </style>
 </head>
 <body>
 
+  <!-- HEADER -->
   <header>
     <div class="brand">
       <div class="brand-logo">RR</div>
       <div>
-        <h1>Robot Rumble</h1>
-        <p>Sui Blockchain Test Harness & Inspector</p>
+        <div class="brand-title">Robot Rumble &bull; Sui Protocol</div>
+        <div class="brand-sub">Production Mech-Arena Blockchain Dashboard & Governance</div>
       </div>
     </div>
-    <div class="net-badge">
-      <span class="net-dot"></span>
-      <span id="net-label">Sui Testnet</span>
+    <div class="header-actions">
+      <div class="net-badge">
+        <div class="net-dot"></div>
+        <span>Sui Testnet Live</span>
+      </div>
+      <div class="wallet-chip">
+        <span id="active-wallet-label">0xaf41...99f8</span>
+        <button class="btn btn-outline btn-sm" id="btn-change-wallet" style="margin-left:6px;">Change</button>
+      </div>
     </div>
   </header>
 
-  <div class="grid">
-    <!-- LEFT PANEL: WALLET & ACTIONS -->
-    <div>
-      <!-- WALLET CONNECTION -->
-      <div class="card">
-        <div class="card-title">
-          <span>1. Player Wallet</span>
-          <button class="btn btn-outline btn-sm" id="btn-detect-wallets">Detect</button>
+  <!-- NAVIGATION TABS -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="tab-gov">🏛️ Governance & DAO</button>
+    <button class="tab-btn" data-tab="tab-txs">📊 Live Transactions</button>
+    <button class="tab-btn" data-tab="tab-tokens">🪙 Tokenomics & Treasury</button>
+    <button class="tab-btn" data-tab="tab-gear">🤖 NFTs & Mech Gear</button>
+    <button class="tab-btn" data-tab="tab-battles">⚔️ Battles & Rewards</button>
+    <button class="tab-btn" data-tab="tab-upgrades">📈 Upgrades & Burns</button>
+    <button class="tab-btn" data-tab="tab-market">🛒 Marketplace</button>
+    <button class="tab-btn" data-tab="tab-sim">🎮 Simulator & Harness</button>
+  </nav>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <main>
+
+    <!-- TAB 1: GOVERNANCE & DAO -->
+    <div id="tab-gov" class="tab-content active">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Active Proposals</div>
+          <div class="kpi-val" id="gov-kpi-proposals">1</div>
+          <div class="kpi-sub">On-Chain Governed</div>
         </div>
-        <div id="wallet-list" style="margin-bottom: 12px;"></div>
-        <div class="input-group">
-          <label>Wallet / Test Address</label>
-          <input type="text" id="wallet-input" placeholder="0x... (e.g. connected Sui address)">
+        <div class="kpi-card">
+          <div class="kpi-label">Victory Reward</div>
+          <div class="kpi-val" id="gov-kpi-reward">50 RRC</div>
+          <div class="kpi-sub">Governed Parameter #1</div>
         </div>
-        <button class="btn btn-primary" id="btn-set-wallet">Set Active Wallet</button>
+        <div class="kpi-card">
+          <div class="kpi-label">Quorum Requirement</div>
+          <div class="kpi-val">20.0%</div>
+          <div class="kpi-sub">200 of 1000 Denominator</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Approval Threshold</div>
+          <div class="kpi-val">&gt; 51.0%</div>
+          <div class="kpi-sub">Non-Abstaining Majority</div>
+        </div>
       </div>
 
-      <!-- PLAYER PROFILE -->
       <div class="card">
-        <div class="card-title">
-          <span>2. Player Profile</span>
-          <span id="profile-badge" style="font-size: 11px; color: var(--text-dim);">Unloaded</span>
+        <div class="card-header">
+          <div class="card-title">🏛️ On-Chain Governance Proposals</div>
+          <button class="btn btn-cyan btn-sm" id="btn-open-create-prop">+ Propose Parameter Change</button>
         </div>
-        <div class="stats-row">
-          <div class="stat-box">
-            <div class="stat-label">Level</div>
-            <div class="stat-val" id="prof-level">-</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">XP</div>
-            <div class="stat-val" id="prof-xp">-</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Victories</div>
-            <div class="stat-val" style="color: var(--green);" id="prof-wins">-</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Battles</div>
-            <div class="stat-val" id="prof-battles">-</div>
-          </div>
+
+        <div id="proposals-list">
+          <div class="empty-state">Loading on-chain proposals...</div>
         </div>
-        <button class="btn btn-outline" id="btn-create-profile" style="margin-top: 4px;">Initialize Profile</button>
       </div>
 
-      <!-- SIMULATE VICTORY -->
-      <div class="card">
-        <div class="card-title">
-          <span>3. Simulate Combat Victory</span>
+      <!-- CREATE PROPOSAL MODAL / FORM -->
+      <div class="card" id="card-create-prop" style="display:none; border-color: var(--cyan);">
+        <div class="card-header">
+          <div class="card-title">Create On-Chain Governance Proposal</div>
+          <button class="btn btn-outline btn-sm" id="btn-close-create-prop">&times; Cancel</button>
         </div>
-        <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 14px;">
-          Simulates winning an arena combat match with 3 enemy robot kills. Authorized backend executes on-chain VRF minting.
-        </p>
-        <button class="btn btn-amber" id="btn-sim-victory">
-          ⚔️ Simulate Match Victory (+50 RRC)
-        </button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div>
+            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Proposal Title</label>
+            <input type="text" id="prop-input-title" placeholder="e.g. RRP-2: Adjust Base Upgrade Cost">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Allowlisted Governed Parameter</label>
+            <select id="prop-input-param">
+              <option value="1">PARAM 1: Victory Reward (10 - 500 RRC)</option>
+              <option value="2">PARAM 2: Base Upgrade Cost (1 - 100 RRC)</option>
+              <option value="3">PARAM 3: Max Gear Level (5 - 50)</option>
+              <option value="4">PARAM 4: Marketplace Fee (0 - 1000 BPS)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div>
+            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Target Value</label>
+            <input type="number" id="prop-input-val" placeholder="e.g. 15">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Total Eligible Voting Power (Snapshot)</label>
+            <input type="number" id="prop-input-power" value="1000">
+          </div>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Description & Justification</label>
+          <textarea id="prop-input-desc" rows="3" placeholder="Explain the rationale and balance implications of this proposed parameter change..."></textarea>
+        </div>
+        <button class="btn btn-cyan" id="btn-submit-proposal">Submit Proposal to Sui Testnet</button>
       </div>
+    </div>
 
-      <!-- TOKEN BALANCE -->
+    <!-- TAB 2: LIVE TRANSACTIONS -->
+    <div id="tab-txs" class="tab-content">
       <div class="card">
-        <div class="card-title">
-          <span>4. Token Balance</span>
-          <button class="btn btn-outline btn-sm" id="btn-refresh-balance">Refresh</button>
+        <div class="card-header">
+          <div class="card-title">📊 Confirmed Sui Testnet Transactions</div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-txs">🔄 Refresh Feed</button>
         </div>
-        <div class="stats-row">
-          <div class="stat-box">
-            <div class="stat-label">Robot Credits (RRC)</div>
-            <div class="stat-val" style="color: var(--amber);" id="bal-credits">0</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Gas (SUI)</div>
-            <div class="stat-val" style="color: var(--cyan);" id="bal-sui">-</div>
-          </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Digest</th>
+                <th>Checkpoint</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+                <th>Sender</th>
+                <th>Explorer</th>
+              </tr>
+            </thead>
+            <tbody id="txs-table-body">
+              <tr><td colspan="6" class="empty-state">Loading transactions from Sui Testnet...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT PANEL: GEAR INVENTORY & TRANSACTIONS -->
-    <div>
+    <!-- TAB 3: TOKENOMICS & TREASURY -->
+    <div id="tab-tokens" class="tab-content">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Circulating Supply</div>
+          <div class="kpi-val" style="color:var(--amber);" id="token-kpi-circulating">60 RRC</div>
+          <div class="kpi-sub">Total Active Coins on Ledger</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cumulative Minted</div>
+          <div class="kpi-val" style="color:var(--green);" id="token-kpi-minted">100 RRC</div>
+          <div class="kpi-sub">Combat Match Rewards</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cumulative Burned</div>
+          <div class="kpi-val" style="color:var(--red);" id="token-kpi-burned">40 RRC</div>
+          <div class="kpi-sub">Burned via Gear Upgrades</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Treasury Vault</div>
+          <div class="kpi-val" style="font-size:18px;">Shared Object</div>
+          <div class="kpi-sub" id="token-vault-id">0x1e7e...04ba</div>
+        </div>
+      </div>
+
       <div class="card">
-        <div class="card-title">
-          <span>On-Chain Gear Inventory (Owned NFTs)</span>
+        <div class="card-header">
+          <div class="card-title">🪙 Tokenomics Architecture (RRC)</div>
+        </div>
+        <div style="font-size:14px; line-height: 1.7; color: var(--text-dim);">
+          <p><strong style="color:#fff;">Token Standard:</strong> Native Sui Coin (<code>robot_rumble::credits::CREDITS</code>)</p>
+          <p><strong style="color:#fff;">Decimals:</strong> 0 (discrete game utility currency)</p>
+          <p><strong style="color:#fff;">Mint Mechanism:</strong> Governed battle reward distribution triggered exclusively by verified game authority.</p>
+          <p><strong style="color:#fff;">Deflationary Burn:</strong> Upgrading weapon damage and stats permanently consumes and burns RRC tokens back into the shared treasury vault.</p>
+          <p style="margin-top:12px;"><a class="digest-link" id="link-treasury-obj" target="_blank" href="#">View Shared Treasury Vault on Suiscan ↗</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: NFTS & MECH GEAR -->
+    <div id="tab-gear" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🤖 Owned Mech Gear & Avatar NFTs</div>
           <button class="btn btn-outline btn-sm" id="btn-refresh-gear">🔄 Refresh Ledger</button>
         </div>
-        <div id="gear-container" class="gear-grid">
-          <div class="empty-state">No player wallet connected. Set an address to inspect owned gear objects.</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">
-          <span>Live Blockchain Transaction Log</span>
-          <button class="btn btn-outline btn-sm" id="btn-clear-txs">Clear</button>
-        </div>
-        <div id="tx-log">
-          <div class="empty-state" style="padding: 16px;">No transactions submitted yet in this session.</div>
+        <div id="gear-grid-container" class="gear-grid">
+          <div class="empty-state">Loading on-chain NFTs...</div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="status-toast"></div>
+    <!-- TAB 5: BATTLES & REWARDS -->
+    <div id="tab-battles" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚔️ Verified Battle Records</div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-battles">🔄 Refresh Battles</button>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Battle ID</th>
+                <th>Player</th>
+                <th>Result</th>
+                <th>Enemies Killed</th>
+                <th>XP Gained</th>
+                <th>Tx Digest</th>
+              </tr>
+            </thead>
+            <tbody id="battles-table-body">
+              <tr><td colspan="6" class="empty-state">No battle records loaded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: UPGRADES & BURNS -->
+    <div id="tab-upgrades" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📈 Upgrade History & Token Burn Ledger</div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-upgrades">🔄 Refresh Upgrades</button>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Gear ID</th>
+                <th>Kind</th>
+                <th>New Level</th>
+                <th>New Stat</th>
+                <th>Burned RRC</th>
+                <th>Transaction</th>
+              </tr>
+            </thead>
+            <tbody id="upgrades-table-body">
+              <tr><td colspan="6" class="empty-state">Loading upgrade logs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: MARKETPLACE -->
+    <div id="tab-market" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🛒 Marketplace Activity & Royalties</div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-market">🔄 Refresh Market</button>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Weapon ID</th>
+                <th>Seller</th>
+                <th>Buyer</th>
+                <th>Price (RRC)</th>
+                <th>Transaction</th>
+              </tr>
+            </thead>
+            <tbody id="market-table-body">
+              <tr><td colspan="6" class="empty-state">Loading marketplace events...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 8: SIMULATOR & TEST HARNESS -->
+    <div id="tab-sim" class="tab-content">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🎮 Simulate Match Victory</div>
+          </div>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">
+            Simulates winning an arena combat match in Unreal Engine 5. Authorized backend executes on-chain VRF minting, awarding a unique Mech NFT and 50 RRC tokens.
+          </p>
+          <button class="btn btn-amber" id="btn-sim-victory" style="width:100%; padding:14px;">
+            ⚔️ Simulate Match Victory (+50 RRC & Gear Mint)
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">👤 Create Player Profile</div>
+          </div>
+          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">
+            Initializes an on-chain PlayerProfile object tracking wins, losses, XP, and rank level for the active wallet address.
+          </p>
+          <button class="btn btn-cyan" id="btn-create-profile" style="width:100%; padding:14px;">
+            ⚡ Initialize Player Profile
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="toast"></div>
 
   <script type="module">
-    import { getWallets } from 'https://esm.sh/@wallet-standard/app@1';
-
+    let activeAddress = localStorage.getItem('rr_active_wallet') || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
     const EXPLORER_URL = 'https://suiscan.xyz/testnet/tx/';
-    let currentAddress = localStorage.getItem('rr_active_wallet') || '';
 
-    const walletInput = document.getElementById('wallet-input');
-    const toast = document.getElementById('status-toast');
-    const gearContainer = document.getElementById('gear-container');
-    const txLog = document.getElementById('tx-log');
+    const walletLabel = document.getElementById('active-wallet-label');
+    const toast = document.getElementById('toast');
 
-    if (currentAddress) {
-      walletInput.value = currentAddress;
+    function updateWalletUI() {
+      walletLabel.textContent = activeAddress.slice(0, 6) + '...' + activeAddress.slice(-4);
     }
+    updateWalletUI();
 
     function showToast(msg, isError = false) {
       toast.textContent = msg;
@@ -451,246 +756,427 @@
       setTimeout(() => { toast.style.display = 'none'; }, 5000);
     }
 
-    function addTxLog(title, digest, url) {
-      const empty = txLog.querySelector('.empty-state');
-      if (empty) empty.remove();
-
-      const div = document.createElement('div');
-      div.className = 'tx-item';
-      div.innerHTML = `
-        <div>
-          <strong>${title}</strong>
-          <div style="font-size: 11px; color: #64748b;">${new Date().toLocaleTimeString()}</div>
-        </div>
-        <a class="tx-digest" href="${url || EXPLORER_URL + digest}" target="_blank">
-          ${digest.slice(0, 10)}...${digest.slice(-8)} ↗
-        </a>
-      `;
-      txLog.prepend(div);
-    }
-
-    async function setWallet(addr) {
-      if (!addr || !addr.startsWith('0x')) {
-        showToast('Please enter a valid Sui address (0x...)', true);
-        return;
-      }
-      currentAddress = addr;
-      localStorage.setItem('rr_active_wallet', addr);
-      showToast('Active wallet set: ' + addr.slice(0, 8) + '...');
-      await fetch('/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: addr })
+    // Tabs Switcher
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const target = btn.getAttribute('data-tab');
+        document.getElementById(target).classList.add('active');
       });
-      refreshAll();
-    }
+    });
 
-    async function refreshAll() {
-      if (!currentAddress) return;
-      await Promise.all([refreshGear(), refreshBalance()]);
-    }
-
-    async function refreshBalance() {
-      if (!currentAddress) return;
-      try {
-        const res = await fetch(`/balance/${currentAddress}`);
-        const data = await res.json();
-        if (data.ok) {
-          document.getElementById('bal-credits').textContent = data.credits ?? 0;
-          document.getElementById('bal-sui').textContent = (Number(data.sui || 0) / 1e9).toFixed(3);
-        }
-      } catch (e) {
-        console.error('Balance error', e);
+    // Change Wallet
+    document.getElementById('btn-change-wallet').addEventListener('click', () => {
+      const addr = prompt('Enter player / voter Sui address (0x...):', activeAddress);
+      if (addr && addr.startsWith('0x')) {
+        activeAddress = addr;
+        localStorage.setItem('rr_active_wallet', addr);
+        updateWalletUI();
+        fetch('/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: addr })
+        });
+        loadAll();
       }
-    }
+    });
 
-    async function refreshGear() {
-      if (!currentAddress) return;
-      gearContainer.innerHTML = '<div class="empty-state">Loading on-chain ledger objects...</div>';
+    // 1. Load Governance & Proposals
+    async function loadGovernance() {
       try {
-        const res = await fetch(`/gear/${currentAddress}`);
-        const data = await res.json();
-        
-        if (data.profile) {
-          document.getElementById('profile-badge').textContent = 'Profile Active';
-          document.getElementById('profile-badge').style.color = 'var(--green)';
-          document.getElementById('prof-level').textContent = data.profile.level || 1;
-          document.getElementById('prof-xp').textContent = data.profile.xp || 0;
-          document.getElementById('prof-wins').textContent = data.profile.wins || 0;
-          document.getElementById('prof-battles').textContent = data.profile.battlesPlayed || 0;
-        } else {
-          document.getElementById('profile-badge').textContent = 'No Profile';
+        const [cfgRes, propsRes] = await Promise.all([
+          fetch('/governance/config').then(r => r.json()),
+          fetch('/governance/proposals').then(r => r.json())
+        ]);
+
+        if (cfgRes.ok) {
+          document.getElementById('gov-kpi-reward').textContent = cfgRes.winRewardCredits + ' RRC';
+          document.getElementById('gov-kpi-proposals').textContent = cfgRes.proposalCount;
         }
 
-        document.getElementById('bal-credits').textContent = data.credits ?? 0;
-
-        const gearList = data.gear || [];
-        if (gearList.length === 0) {
-          gearContainer.innerHTML = '<div class="empty-state">No Gear NFTs found for this address. Click "Simulate Match Victory" to earn gear!</div>';
+        const container = document.getElementById('proposals-list');
+        if (!propsRes.ok || !propsRes.proposals || propsRes.proposals.length === 0) {
+          container.innerHTML = '<div class="empty-state">No governance proposals submitted yet. Click "+ Propose Parameter Change" to create one.</div>';
           return;
         }
 
-        gearContainer.innerHTML = '';
-        gearList.forEach(g => {
+        container.innerHTML = '';
+        propsRes.proposals.forEach(p => {
           const card = document.createElement('div');
-          card.className = 'gear-card';
-          
-          let statText = '';
-          if (g.kind === 'weapon') statText = `⚔️ Damage: <strong>${g.damage}</strong>`;
-          else if (g.kind === 'armor') statText = `🛡️ Armor: <strong>${g.armor}</strong>`;
-          else statText = `⚡ Power: <strong>${g.power}</strong>`;
+          card.className = 'proposal-card';
 
-          const canUpgrade = g.kind === 'weapon';
-          const upgradeCost = g.level * 10;
+          const forPct = p.approvalPercent || 0;
+          const againstPct = (100 - forPct).toFixed(1);
+          const quorumRatio = Math.min(100, ((p.totalParticipatingVotes / p.requiredQuorum) * 100).toFixed(1));
 
           card.innerHTML = `
-            <span class="gear-kind kind-${g.kind}">${g.kind}</span>
-            <span class="rarity-badge rarity-${g.rarity || 'Common'}">${g.rarity || 'Common'}</span>
-            <div class="gear-name">${g.name}</div>
-            <div class="gear-id">ID: ${g.id.slice(0, 10)}...${g.id.slice(-8)}</div>
-            <div class="gear-stats">
-              <div>Level: <strong>${g.level}</strong> &bull; Wins: <strong>${g.wins || 0}</strong></div>
-              <div>${statText}</div>
-              <div>Durability: <strong>${g.durability || 100}/100</strong></div>
+            <div class="proposal-head">
+              <div>
+                <div class="badge badge-purple">Proposal #${p.index}</div>
+                <div class="proposal-title" style="margin-top:6px;">${p.title}</div>
+                <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">
+                  Parameter: <strong style="color:var(--cyan);">${p.paramName}</strong> &bull; Target Value: <strong style="color:#fff;">${p.targetValue}</strong>
+                </div>
+              </div>
+              <div class="badge ${p.state === 3 ? 'badge-success' : p.state === 1 ? 'badge-warning' : 'badge-purple'}">
+                ${p.stateLabel}
+              </div>
             </div>
-            ${canUpgrade ? `
-              <button class="btn btn-outline btn-sm upgrade-btn" data-id="${g.id}" data-level="${g.level}">
-                Upgrade (+8 DMG / -${upgradeCost} RRC)
-              </button>
-            ` : ''}
+            <p style="font-size:13px; color:var(--text-dim); margin: 10px 0;">${p.description}</p>
+
+            <div class="vote-stats">
+              <div>
+                <div style="font-size:11px; color:var(--text-dim);">FOR VOTES</div>
+                <div style="font-size:16px; font-weight:700; color:var(--green);">${p.forVotes}</div>
+              </div>
+              <div>
+                <div style="font-size:11px; color:var(--text-dim);">AGAINST VOTES</div>
+                <div style="font-size:16px; font-weight:700; color:var(--red);">${p.againstVotes}</div>
+              </div>
+              <div>
+                <div style="font-size:11px; color:var(--text-dim);">ABSTAIN</div>
+                <div style="font-size:16px; font-weight:700; color:var(--text-dim);">${p.abstainVotes}</div>
+              </div>
+            </div>
+
+            <div style="margin: 12px 0;">
+              <div style="display:flex; justify-content:space-between; font-size:12px;">
+                <span>Quorum Progress (${p.totalParticipatingVotes}/${p.requiredQuorum} needed)</span>
+                <span style="color:${p.quorumReached ? 'var(--green)' : 'var(--amber)'}; font-weight:600;">
+                  ${p.quorumReached ? '✓ Quorum Reached' : `${quorumRatio}% of Quorum`}
+                </span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${quorumRatio}%;"></div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; pt-2; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
+              <a class="digest-link" href="${p.url}" target="_blank">View on Suiscan ↗</a>
+              <div style="display:flex; gap:8px;">
+                ${p.isVotingOpen ? `
+                  <button class="btn btn-outline btn-sm btn-vote" data-id="${p.id}" data-type="1" style="color:var(--green); border-color:var(--green);">Vote For</button>
+                  <button class="btn btn-outline btn-sm btn-vote" data-id="${p.id}" data-type="0" style="color:var(--red); border-color:var(--red);">Vote Against</button>
+                  <button class="btn btn-outline btn-sm btn-vote" data-id="${p.id}" data-type="2">Abstain</button>
+                ` : ''}
+                ${p.isTimelocked && p.isTimelockExpired ? `
+                  <button class="btn btn-cyan btn-sm btn-execute" data-id="${p.id}">Execute Proposal</button>
+                ` : ''}
+              </div>
+            </div>
           `;
-          gearContainer.appendChild(card);
+          container.appendChild(card);
         });
 
-        // Attach upgrade listeners
-        document.querySelectorAll('.upgrade-btn').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            const gearId = btn.getAttribute('data-id');
-            await upgradeWeapon(gearId);
+        // Vote button listeners
+        document.querySelectorAll('.btn-vote').forEach(b => {
+          b.addEventListener('click', async () => {
+            const id = b.getAttribute('data-id');
+            const voteType = Number(b.getAttribute('data-type'));
+            showToast('Submitting vote on Sui Testnet...');
+            const res = await fetch(`/governance/proposals/${id}/vote`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ voteType, voterAddress: activeAddress })
+            }).then(r => r.json());
+
+            if (res.ok) {
+              showToast(`Vote submitted! Digest: ${res.digest.slice(0, 8)}...`);
+              loadGovernance();
+            } else {
+              showToast(`Vote error: ${res.error}`, true);
+            }
+          });
+        });
+
+        // Execute button listener
+        document.querySelectorAll('.btn-execute').forEach(b => {
+          b.addEventListener('click', async () => {
+            const id = b.getAttribute('data-id');
+            showToast('Executing proposal on-chain...');
+            const res = await fetch(`/governance/proposals/${id}/execute`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({})
+            }).then(r => r.json());
+            if (res.ok) {
+              showToast(`Proposal executed! Digest: ${res.digest.slice(0, 8)}...`);
+              loadGovernance();
+            } else {
+              showToast(`Execution error: ${res.error}`, true);
+            }
           });
         });
 
       } catch (e) {
-        gearContainer.innerHTML = `<div class="empty-state" style="color:var(--red);">Error loading gear: ${e.message}</div>`;
+        console.error('Governance load error', e);
       }
     }
 
-    async function simulateVictory() {
-      if (!currentAddress) {
-        showToast('Please set your player wallet first', true);
-        return;
-      }
-      showToast('Simulating match victory & executing on-chain reward...');
-      const btn = document.getElementById('btn-sim-victory');
-      btn.disabled = true;
-      btn.textContent = '⏳ Minting on Sui Testnet...';
-      try {
-        const res = await fetch('/reward', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: currentAddress, won: true, enemiesKilled: 3 })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showToast(`Match Victory Reward Mined! +${data.creditsAdded} RRC`);
-          addTxLog('Battle Reward (+50 RRC & Gear NFT)', data.digest, data.url);
-          await refreshAll();
-        } else {
-          showToast('Reward failed: ' + (data.error || 'Unknown error'), true);
-        }
-      } catch (e) {
-        showToast('Error requesting reward: ' + e.message, true);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '⚔️ Simulate Match Victory (+50 RRC)';
-      }
-    }
-
-    async function upgradeWeapon(gearId) {
-      showToast('Executing weapon upgrade transaction...');
-      try {
-        const res = await fetch('/upgrade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: currentAddress, weaponId: gearId })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showToast(`Weapon Upgraded! Level ${data.newLevel}, Damage ${data.newDamage}`);
-          addTxLog(`Upgrade Weapon (${gearId.slice(0, 8)}...)`, data.digest, data.url);
-          await refreshAll();
-        } else {
-          showToast('Upgrade failed: ' + (data.error || 'Unknown error'), true);
-        }
-      } catch (e) {
-        showToast('Error upgrading weapon: ' + e.message, true);
-      }
-    }
-
-    async function createProfile() {
-      if (!currentAddress) {
-        showToast('Set wallet address first', true);
-        return;
-      }
-      showToast('Creating on-chain PlayerProfile...');
-      try {
-        const res = await fetch('/player/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: currentAddress })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showToast('PlayerProfile initialized!');
-          addTxLog('Create Player Profile', data.digest, data.url);
-          await refreshAll();
-        } else {
-          showToast('Profile init failed: ' + (data.error || 'Unknown error'), true);
-        }
-      } catch (e) {
-        showToast('Error: ' + e.message, true);
-      }
-    }
-
-    // Wallet Standard Detection
-    function detectWallets() {
-      const container = document.getElementById('wallet-list');
-      const ws = getWallets().get().filter(w => w.chains.some(c => c.startsWith('sui:')) && w.features['standard:connect']);
-      container.innerHTML = '';
-      if (!ws.length) {
-        container.innerHTML = '<div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">No browser wallet extension detected (e.g. Slush, Sui Wallet). You can paste an address below.</div>';
-        return;
-      }
-      ws.forEach(w => {
-        const btn = document.createElement('button');
-        btn.className = 'btn btn-outline btn-sm';
-        btn.style.marginBottom = '6px';
-        btn.textContent = `Connect ${w.name}`;
-        btn.onclick = async () => {
-          try {
-            const { accounts } = await w.features['standard:connect'].connect();
-            walletInput.value = accounts[0].address;
-            setWallet(accounts[0].address);
-          } catch (e) {
-            showToast(String(e), true);
-          }
-        };
-        container.appendChild(btn);
-      });
-    }
-
-    document.getElementById('btn-set-wallet').addEventListener('click', () => setWallet(walletInput.value.trim()));
-    document.getElementById('btn-sim-victory').addEventListener('click', simulateVictory);
-    document.getElementById('btn-refresh-gear').addEventListener('click', refreshGear);
-    document.getElementById('btn-refresh-balance').addEventListener('click', refreshBalance);
-    document.getElementById('btn-create-profile').addEventListener('click', createProfile);
-    document.getElementById('btn-detect-wallets').addEventListener('click', detectWallets);
-    document.getElementById('btn-clear-txs').addEventListener('click', () => {
-      txLog.innerHTML = '<div class="empty-state" style="padding: 16px;">Log cleared.</div>';
+    // Modal toggles
+    document.getElementById('btn-open-create-prop').addEventListener('click', () => {
+      document.getElementById('card-create-prop').style.display = 'block';
+    });
+    document.getElementById('btn-close-create-prop').addEventListener('click', () => {
+      document.getElementById('card-create-prop').style.display = 'none';
     });
 
-    detectWallets();
-    if (currentAddress) refreshAll();
+    // Submit Proposal
+    document.getElementById('btn-submit-proposal').addEventListener('click', async () => {
+      const title = document.getElementById('prop-input-title').value;
+      const desc = document.getElementById('prop-input-desc').value;
+      const paramId = Number(document.getElementById('prop-input-param').value);
+      const targetValue = Number(document.getElementById('prop-input-val').value);
+      const totalEligiblePower = Number(document.getElementById('prop-input-power').value);
+
+      if (!title || !desc || !targetValue) {
+        showToast('Please fill out all proposal fields', true);
+        return;
+      }
+
+      showToast('Creating on-chain proposal on Sui Testnet...');
+      const res = await fetch('/governance/proposals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description: desc, paramId, targetValue, totalEligiblePower })
+      }).then(r => r.json());
+
+      if (res.ok) {
+        showToast(`Proposal created! Digest: ${res.digest.slice(0, 8)}...`);
+        document.getElementById('card-create-prop').style.display = 'none';
+        loadGovernance();
+      } else {
+        showToast(`Creation error: ${res.error}`, true);
+      }
+    });
+
+    // 2. Load Transactions
+    async function loadTransactions() {
+      try {
+        const res = await fetch('/transactions').then(r => r.json());
+        const tbody = document.getElementById('txs-table-body');
+        if (!res.ok || !res.transactions || res.transactions.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No transactions recorded yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = '';
+        res.transactions.forEach(tx => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><a class="digest-link" href="${tx.url}" target="_blank">${tx.digest.slice(0, 10)}...${tx.digest.slice(-8)}</a></td>
+            <td>${tx.checkpoint || '-'}</td>
+            <td><span class="badge badge-success">${tx.status}</span></td>
+            <td>${new Date(tx.timestampMs).toLocaleTimeString()}</td>
+            <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${tx.sender ? tx.sender.slice(0, 6) + '...' + tx.sender.slice(-4) : '-'}</span></td>
+            <td><a class="digest-link" href="${tx.url}" target="_blank">Explorer ↗</a></td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (e) {}
+    }
+
+    // 3. Load Tokenomics & Treasury
+    async function loadTreasury() {
+      try {
+        const res = await fetch('/treasury').then(r => r.json());
+        if (res.ok) {
+          document.getElementById('token-kpi-circulating').textContent = res.currentSupply + ' RRC';
+          document.getElementById('token-kpi-minted').textContent = res.cumulativeMinted + ' RRC';
+          document.getElementById('token-kpi-burned').textContent = res.cumulativeBurned + ' RRC';
+          document.getElementById('token-vault-id').textContent = res.vaultId.slice(0, 8) + '...' + res.vaultId.slice(-6);
+          document.getElementById('link-treasury-obj').href = res.vaultUrl;
+        }
+      } catch (e) {}
+    }
+
+    // 4. Load Gear NFTs
+    async function loadGear() {
+      const container = document.getElementById('gear-grid-container');
+      try {
+        const res = await fetch(`/gear/${activeAddress}`).then(r => r.json());
+        if (!res.ok || !res.gear || res.gear.length === 0) {
+          container.innerHTML = '<div class="empty-state">No Mech NFTs found for active wallet. Click "Simulate Match Victory" to earn one!</div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        res.gear.forEach(g => {
+          const card = document.createElement('div');
+          card.className = `gear-card ${g.rarity.toLowerCase()}`;
+          const upgradeCost = g.level * 10;
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="badge badge-purple">${g.kind}</span>
+              <span class="badge ${g.rarity === 'Rare' ? 'badge-warning' : 'badge-success'}">${g.rarity}</span>
+            </div>
+            <div class="gear-name">${g.name}</div>
+            <div class="gear-stats-row"><span>Level</span><strong>${g.level}</strong></div>
+            <div class="gear-stats-row"><span>Damage</span><strong style="color:var(--cyan);">${g.damage}</strong></div>
+            <div class="gear-stats-row"><span>Durability</span><strong>${g.durability}/100</strong></div>
+            <div class="gear-stats-row"><span>Wins</span><strong>${g.wins}</strong></div>
+            <div style="margin-top:14px; display:flex; gap:8px;">
+              <button class="btn btn-cyan btn-sm btn-upgrade-gear" data-id="${g.id}" style="flex:1;">
+                Upgrade (-${upgradeCost} RRC)
+              </button>
+              <a class="btn btn-outline btn-sm" href="${g.url}" target="_blank">Suiscan ↗</a>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+        document.querySelectorAll('.btn-upgrade-gear').forEach(b => {
+          b.addEventListener('click', async () => {
+            const wId = b.getAttribute('data-id');
+            showToast('Upgrading weapon & burning RRC on-chain...');
+            const upgRes = await fetch('/upgrade', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ address: activeAddress, weaponId: wId })
+            }).then(r => r.json());
+
+            if (upgRes.ok) {
+              showToast(`Upgraded! Level ${upgRes.newLevel}, Damage ${upgRes.newDamage}. Tx: ${upgRes.digest.slice(0, 8)}...`);
+              loadGear();
+              loadTreasury();
+              loadUpgrades();
+            } else {
+              showToast(`Upgrade error: ${upgRes.error}`, true);
+            }
+          });
+        });
+
+      } catch (e) {
+        container.innerHTML = `<div class="empty-state">Error loading gear: ${e.message}</div>`;
+      }
+    }
+
+    // 5. Load Battles
+    async function loadBattles() {
+      try {
+        const res = await fetch('/battles').then(r => r.json());
+        const tbody = document.getElementById('battles-table-body');
+        if (!res.ok || !res.battles || res.battles.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No battles recorded on-chain yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = '';
+        res.battles.forEach(b => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>#${b.battleId}</td>
+            <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${b.player ? b.player.slice(0, 6) + '...' + b.player.slice(-4) : '-'}</span></td>
+            <td><span class="badge ${b.won ? 'badge-success' : 'badge-warning'}">${b.won ? 'VICTORY' : 'DEFEAT'}</span></td>
+            <td>${b.enemiesKilled}</td>
+            <td>+${b.xpGained} XP</td>
+            <td><a class="digest-link" href="${b.url}" target="_blank">${b.txDigest.slice(0, 8)}... ↗</a></td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (e) {}
+    }
+
+    // 6. Load Upgrades
+    async function loadUpgrades() {
+      try {
+        const res = await fetch('/upgrades').then(r => r.json());
+        const tbody = document.getElementById('upgrades-table-body');
+        if (!res.ok || !res.upgrades || res.upgrades.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No upgrades performed yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = '';
+        res.upgrades.forEach(u => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${u.gearId.slice(0, 8)}...</span></td>
+            <td>${u.kind}</td>
+            <td><strong>Lv ${u.newLevel}</strong></td>
+            <td><span style="color:var(--cyan); font-weight:700;">+${u.newStat}</span></td>
+            <td><span style="color:var(--red); font-weight:700;">-${u.costPaid} RRC</span></td>
+            <td><a class="digest-link" href="${u.url}" target="_blank">${u.txDigest.slice(0, 8)}... ↗</a></td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (e) {}
+    }
+
+    // 7. Load Marketplace
+    async function loadMarketplace() {
+      try {
+        const res = await fetch('/marketplace/activity').then(r => r.json());
+        const tbody = document.getElementById('market-table-body');
+        if (!res.ok || !res.activity || res.activity.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No marketplace activity recorded yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = '';
+        res.activity.forEach(m => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><span class="badge badge-purple">${m.action}</span></td>
+            <td>${m.weaponId ? m.weaponId.slice(0, 8) + '...' : '-'}</td>
+            <td>${m.seller ? m.seller.slice(0, 6) + '...' + m.seller.slice(-4) : '-'}</td>
+            <td>${m.buyer ? m.buyer.slice(0, 6) + '...' + m.buyer.slice(-4) : '-'}</td>
+            <td><strong>${m.price} RRC</strong></td>
+            <td><a class="digest-link" href="${m.url}" target="_blank">${m.txDigest.slice(0, 8)}... ↗</a></td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (e) {}
+    }
+
+    // 8. Simulator Actions
+    document.getElementById('btn-sim-victory').addEventListener('click', async () => {
+      showToast('Executing VRF victory mint on Sui Testnet...');
+      const res = await fetch('/reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: activeAddress, won: true, enemiesKilled: 3 })
+      }).then(r => r.json());
+
+      if (res.ok) {
+        showToast(`Victory rewarded! Minted ${res.minted?.name || 'NFT'} & +50 RRC. Digest: ${res.digest.slice(0, 8)}...`);
+        loadGear();
+        loadTreasury();
+        loadTransactions();
+      } else {
+        showToast(`Reward error: ${res.error}`, true);
+      }
+    });
+
+    document.getElementById('btn-create-profile').addEventListener('click', async () => {
+      showToast('Creating player profile on-chain...');
+      const res = await fetch('/player/create', { method: 'POST' }).then(r => r.json());
+      if (res.ok) {
+        showToast(`Player profile created! Digest: ${res.digest.slice(0, 8)}...`);
+        loadGear();
+        loadTransactions();
+      } else {
+        showToast(`Profile error: ${res.error}`, true);
+      }
+    });
+
+    // Refresh buttons
+    document.getElementById('btn-refresh-txs').addEventListener('click', loadTransactions);
+    document.getElementById('btn-refresh-gear').addEventListener('click', loadGear);
+    document.getElementById('btn-refresh-battles').addEventListener('click', loadBattles);
+    document.getElementById('btn-refresh-upgrades').addEventListener('click', loadUpgrades);
+    document.getElementById('btn-refresh-market').addEventListener('click', loadMarketplace);
+
+    function loadAll() {
+      loadGovernance();
+      loadTransactions();
+      loadTreasury();
+      loadGear();
+      loadBattles();
+      loadUpgrades();
+      loadMarketplace();
+    }
+
+    loadAll();
   </script>
 </body>
 </html>
