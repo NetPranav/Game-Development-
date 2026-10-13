@@ -2357,86 +2357,26 @@
         return;
       }
 
-      const isDevMode = (currentWallet && currentWallet.isDevMode) ||
-        (adminKeypairAddress && activeAddress.toLowerCase() === adminKeypairAddress.toLowerCase());
-
-      // CASE 1: Testnet Pilot / Dev Mode (Headless backend execution with admin keypair)
-      if (isDevMode || !currentWallet || !currentWallet.features || !currentWallet.features['sui:signAndExecuteTransaction']) {
-        showToast('Initializing pilot profile on Sui Testnet...');
-        try {
-          const res = await fetch('/player/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ address: activeAddress })
-          }).then(r => r.json());
-
-          if (res.ok) {
-            showToast(`Profile initialized on-chain! Tx: ${(res.digest || '').slice(0, 8)}...`);
-            // Wait 2s for RPC indexer to record owned object
-            await new Promise(r => setTimeout(r, 2000));
-            await loadMyAccount();
-            await loadTransactions();
-            await loadOverview();
-          } else {
-            showToast(`Profile error: ${res.error}`, true);
-          }
-        } catch (e) {
-          showToast(`Request error: ${e.message}`, true);
-        }
-        return;
-      }
-
-      // CASE 2: Connected browser wallet (Slush, Sui Wallet, etc.)
+      showToast('Initializing player profile on Sui Testnet...');
       try {
-        // 1. Check gas balance. If < 0.005 SUI, auto-fund gas from faucet
-        const accRes = await fetch(`/account/${activeAddress}`).then(r => r.json()).catch(() => null);
-        const suiRaw = accRes?.balances?.suiRaw ?? 0;
-        if (suiRaw < 5_000_000) {
-          showToast('Auto-funding wallet with 0.05 Testnet SUI for gas fees...');
-          try {
-            const fRes = await fetch('/faucet', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ address: activeAddress })
-            }).then(r => r.json());
-            if (fRes.ok) {
-              showToast('Gas funded! Waiting for network confirmation...');
-              await new Promise(r => setTimeout(r, 2000));
-            }
-          } catch (fe) {
-            console.warn('Faucet attempt:', fe);
-          }
+        const res = await fetch('/player/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: activeAddress })
+        }).then(r => r.json());
+
+        if (res.ok) {
+          showToast(`Player profile initialized on-chain! Tx: ${(res.digest || '').slice(0, 8)}...`);
+          // Wait 2s for RPC indexer to record owned object
+          await new Promise(r => setTimeout(r, 2000));
+          await loadMyAccount();
+          await loadTransactions();
+          await loadOverview();
+        } else {
+          showToast(`Profile error: ${res.error}`, true);
         }
-
-        showToast(`Preparing transaction for ${walletName}...`);
-        const TxClass = await getTransactionClass();
-        if (!TxClass) {
-          throw new Error('Could not load Sui Transaction module.');
-        }
-
-        const tx = new TxClass();
-        tx.moveCall({
-          target: `${deployedPackageId}::player::create_player`,
-        });
-
-        showToast(`Please approve PlayerProfile creation in ${walletName}...`);
-        const signRes = await currentWallet.features['sui:signAndExecuteTransaction'].signAndExecuteTransaction({
-          transaction: tx,
-          account: currentAccount,
-          chain: 'sui:testnet',
-        });
-
-        const digest = signRes.digest || signRes.Transaction?.digest || signRes.effects?.transactionDigest || '';
-        showToast(`Profile initialized on-chain! Tx: ${digest ? digest.slice(0, 8) + '...' : 'Success'}`);
-
-        // Wait 2.5s for Sui node indexing
-        await new Promise(r => setTimeout(r, 2500));
-        await loadMyAccount();
-        await loadTransactions();
-        await loadOverview();
-      } catch (err) {
-        console.error('Wallet profile creation error:', err);
-        showToast(`Wallet action canceled or failed: ${err.message}`, true);
+      } catch (e) {
+        showToast(`Request error: ${e.message}`, true);
       }
     }
 

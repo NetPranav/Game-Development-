@@ -31,10 +31,13 @@ public struct PlayerProgressed has copy, drop {
 
 // === Entry / Public Functions ===
 public fun create_player(ctx: &mut TxContext) {
-    let sender = ctx.sender();
+    create_player_for(ctx.sender(), ctx);
+}
+
+public fun create_player_for(recipient: address, ctx: &mut TxContext) {
     let profile = PlayerProfile {
         id: object::new(ctx),
-        owner: sender,
+        owner: recipient,
         level: 1,
         xp: 0,
         wins: 0,
@@ -42,8 +45,8 @@ public fun create_player(ctx: &mut TxContext) {
         battles_played: 0,
     };
     let player_id = object::id(&profile);
-    transfer::transfer(profile, sender);
-    event::emit(PlayerCreated { player_id, owner: sender });
+    transfer::transfer(profile, recipient);
+    event::emit(PlayerCreated { player_id, owner: recipient });
 }
 
 // === Package-Internal Functions ===

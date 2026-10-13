@@ -14,6 +14,9 @@ import { verifyPersonalMessageSignature } from '@mysten/sui/verify';
 const {
   PACKAGE_ID,
   PACKAGE_ID_V2 = PACKAGE_ID,
+  PACKAGE_ID_V3 = '0x54fb4b210eb3f153f41e1e9b1b898beeea3c209005f0d9874b3b52349ecb8de4',
+  PACKAGE_ID_V4 = '0x2d73b3a18f9a5fefd42cad9cd7eddc1e3e9c9130f22ed83829609b108723472a',
+  SETTLEMENT_REGISTRY_ID = '0xc91538b526d4b81de448a0c0f9aad47b13feee364bc225696ecebd0947d9143a',
   ADMIN_CAP_ID,
   VAULT_ID,
   GOVERNED_CONFIG_ID,
@@ -511,19 +514,14 @@ app.post('/faucet', wrap(async (req, res) => {
 }));
 
 app.post('/player/create', wrap(async (req, res) => {
-  const target = req.body?.address;
-  const adminAddr = admin?.toSuiAddress()?.toLowerCase();
+  const target = req.body?.address || admin?.toSuiAddress();
+  if (!isAddress(target)) throw Object.assign(new Error('invalid address'), { status: 400 });
 
-  if (target && adminAddr && target.toLowerCase() !== adminAddr) {
-    return res.status(400).json({
-      ok: false,
-      error: 'External wallets must sign PlayerProfile creation directly via their connected wallet so the soulbound profile object is assigned to their own address.',
-    });
-  }
-
+  const pkg = PACKAGE_ID_V4 || '0x2d73b3a18f9a5fefd42cad9cd7eddc1e3e9c9130f22ed83829609b108723472a';
   const tx = new Transaction();
   tx.moveCall({
-    target: `${PACKAGE_ID}::player::create_player`,
+    target: `${pkg}::player::create_player_for`,
+    arguments: [tx.pure.address(target)],
   });
 
   const result = await executeTx(tx, admin);
@@ -531,7 +529,7 @@ app.post('/player/create', wrap(async (req, res) => {
     ok: true,
     digest: result.digest,
     url: EXPLORER + result.digest,
-    profileOwner: admin?.toSuiAddress(),
+    profileOwner: target,
   });
 }));
 
@@ -1024,11 +1022,6 @@ app.post('/governance/proposals/:id/execute', wrap(async (req, res) => {
 // ====================================================
 // 4. Gameplay Scoring, Staking, and Batched Settlement
 // ====================================================
-
-const {
-  PACKAGE_ID_V3 = '0x54fb4b210eb3f153f41e1e9b1b898beeea3c209005f0d9874b3b52349ecb8de4',
-  SETTLEMENT_REGISTRY_ID = '0xc91538b526d4b81de448a0c0f9aad47b13feee364bc225696ecebd0947d9143a',
-} = process.env;
 
 const POINT_VALUES = {
   headshot: 25,
