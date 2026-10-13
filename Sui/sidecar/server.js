@@ -4,10 +4,12 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import crypto from 'node:crypto';
 import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { Transaction } from '@mysten/sui/transactions';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { decodeSuiPrivateKey } from '@mysten/sui/cryptography';
+import { verifyPersonalMessageSignature } from '@mysten/sui/verify';
 
 const {
   PACKAGE_ID,
@@ -187,6 +189,139 @@ app.get('/health', (_req, res) => res.json({
   governedConfigId: GOVERNED_CONFIG_ID ?? null,
 }));
 
+// ==========================================
+// Cryptographic Wallet Authentication (SIWS)
+// ==========================================
+const pendingNonces = new Map(); // nonce -> { address, message, expiresAt }
+const authenticatedSessions = new Map(); // token -> { address, verifiedAt, expiresAt }
+
+function cleanAuthStores() {
+  const now = Date.now();
+  for (const [k, v] of pendingNonces.entries()) {
+    if (v.expiresAt < now) pendingNonces.delete(k);
+  }
+  for (const [k, v] of authenticatedSessions.entries()) {
+    if (v.expiresAt < now) authenticatedSessions.delete(k);
+  }
+}
+setInterval(cleanAuthStores, 60000);
+
+// GET /auth/nonce: Generate single-use challenge nonce with 5m TTL
+app.get('/auth/nonce', wrap(async (req, res) => {
+  const address = req.query.address;
+  if (!isAddress(address)) return res.status(400).json({ ok: false, error: 'invalid or missing Sui address' });
+
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const issuedAt = new Date().toISOString();
+  const challengeMessage = `Robot Rumble Mech-Arena Authentication\nSign this challenge to securely authenticate your Sui wallet.\nThis request does not cost gas and creates no on-chain transaction.\n\nWallet: ${address.toLowerCase()}\nNonce: ${nonce}\nIssued At: ${issuedAt}\nTarget Network: sui:testnet`;
+
+  pendingNonces.set(nonce, {
+    address: address.toLowerCase(),
+    message: challengeMessage,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+  });
+
+  res.json({
+    ok: true,
+    nonce,
+    message: challengeMessage,
+    issuedAt,
+    network: 'sui:testnet',
+  });
+}));
+
+// POST /auth/verify: Verify personal message signature using @mysten/sui/verify
+app.post('/auth/verify', wrap(async (req, res) => {
+  const { address, signature, nonce } = req.body ?? {};
+  if (!address || !signature || !nonce) {
+    return res.status(400).json({ ok: false, error: 'address, signature, and nonce are required' });
+  }
+  if (!isAddress(address)) {
+    return res.status(400).json({ ok: false, error: 'invalid address format' });
+  }
+
+  const stored = pendingNonces.get(nonce);
+  if (!stored) {
+    return res.status(400).json({ ok: false, error: 'invalid or expired authentication challenge nonce' });
+  }
+
+  // Strictly single-use: delete immediately to prevent replay attacks
+  pendingNonces.delete(nonce);
+
+  if (stored.expiresAt < Date.now()) {
+    return res.status(400).json({ ok: false, error: 'authentication challenge expired' });
+  }
+  if (stored.address !== address.toLowerCase()) {
+    return res.status(400).json({ ok: false, error: 'challenge address mismatch' });
+  }
+
+  try {
+    const messageBytes = new TextEncoder().encode(stored.message);
+    const publicKey = await verifyPersonalMessageSignature(messageBytes, signature);
+    const recoveredAddress = publicKey.toSuiAddress().toLowerCase();
+
+    if (recoveredAddress !== address.toLowerCase()) {
+      return res.status(401).json({
+        ok: false,
+        error: `Recovered address ${recoveredAddress} does not match claimed address ${address.toLowerCase()}`,
+      });
+    }
+
+    const sessionToken = 'rr_sess_' + crypto.randomBytes(32).toString('hex');
+    authenticatedSessions.set(sessionToken, {
+      address: recoveredAddress,
+      verifiedAt: Date.now(),
+      expiresAt: Date.now() + 24 * 3600 * 1000, // 24 hours
+    });
+
+    session.connected = true;
+    session.address = recoveredAddress;
+    session.token = sessionToken;
+
+    res.json({
+      ok: true,
+      authenticated: true,
+      sessionToken,
+      address: recoveredAddress,
+      verifiedAt: Date.now(),
+      network: 'sui:testnet',
+    });
+  } catch (err) {
+    console.error('Signature verification error:', err);
+    return res.status(401).json({ ok: false, error: `Cryptographic signature verification failed: ${err.message}` });
+  }
+}));
+
+// POST /auth/logout: Revoke active session
+app.post('/auth/logout', wrap(async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '') || req.body?.token;
+  if (token && authenticatedSessions.has(token)) {
+    const s = authenticatedSessions.get(token);
+    authenticatedSessions.delete(token);
+    if (session.address === s.address) {
+      session.connected = false;
+      session.address = null;
+      session.token = null;
+    }
+  }
+  res.json({ ok: true, message: 'Logged out successfully' });
+}));
+
+// GET /auth/status: Inspect active session authentication status
+app.get('/auth/status', wrap(async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '') || req.query.token;
+  if (token && authenticatedSessions.has(token)) {
+    const s = authenticatedSessions.get(token);
+    if (s.expiresAt > Date.now()) {
+      return res.json({ ok: true, authenticated: true, address: s.address, verifiedAt: s.verifiedAt });
+    }
+    authenticatedSessions.delete(token);
+  }
+  res.json({ ok: true, authenticated: false, address: null });
+}));
+
 app.get('/session', (_req, res) => res.json(session));
 app.post('/session', (req, res) => {
   const address = req.body?.address ?? req.body?.playerAddress;
@@ -196,6 +331,61 @@ app.post('/session', (req, res) => {
   console.log('wallet connected', address);
   res.json({ ok: true, address });
 });
+
+// GET /account/:address: Consolidated personalized account overview
+app.get('/account/:address', wrap(async (req, res) => {
+  const addr = req.params.address;
+  if (!isAddress(addr)) throw Object.assign(new Error('invalid address'), { status: 400 });
+
+  let suiRaw = 0;
+  try {
+    const suiBal = await client.getBalance({ owner: addr });
+    suiRaw = Number(suiBal.balance?.balance ?? suiBal.balance?.totalBalance ?? 0);
+  } catch (e) {}
+  const suiFormatted = (suiRaw / 1e9).toFixed(4);
+
+  const { gear, credits, profile } = await fetchGear(addr);
+
+  // Match rewards history for this participant
+  const userMatches = Array.from(matchesStore.values())
+    .filter(m => m.participants.some(p => p.address.toLowerCase() === addr.toLowerCase()))
+    .map(m => {
+      const part = m.participants.find(p => p.address.toLowerCase() === addr.toLowerCase());
+      return {
+        matchId: m.matchId,
+        title: m.title,
+        gameMode: m.gameMode,
+        status: m.status,
+        score: part ? part.score : 0,
+        rewardRRC: part ? part.rewardRRC : 0,
+        settlementTx: m.settlementTx,
+        createdAt: m.createdAt,
+      };
+    });
+
+  // Check active cryptographic session token
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.replace('Bearer ', '') || req.query.token;
+  const isAuthenticated = Boolean(token && authenticatedSessions.has(token) && authenticatedSessions.get(token).address === addr.toLowerCase());
+
+  res.json({
+    ok: true,
+    address: addr,
+    network: 'sui:testnet',
+    authenticated: isAuthenticated,
+    balances: {
+      sui: suiFormatted,
+      suiRaw,
+      credits, // RRC
+    },
+    profile,
+    gear,
+    gearCount: gear.length,
+    votingEligible: Boolean(profile || gear.length > 0 || credits > 0),
+    matchHistory: userMatches,
+    explorerUrl: `https://suiscan.xyz/testnet/address/${addr}`,
+  });
+}));
 
 app.get('/balance/:address', wrap(async (req, res) => {
   if (!isAddress(req.params.address)) throw Object.assign(new Error('invalid address'), { status: 400 });

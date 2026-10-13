@@ -424,10 +424,101 @@
       display: none;
       font-size: 13px;
     }
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-dim);
+    /* Wallet Dropdown */
+    .wallet-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 10px;
+      width: 320px;
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+      z-index: 200;
+    }
+    .wallet-dropdown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 12px;
+    }
+    .wallet-dropdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      padding: 6px 0;
+    }
+
+    /* Wallet Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 17, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      place-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-box {
+      background: #0d1424;
+      border: 1px solid var(--cyan);
+      box-shadow: 0 0 35px var(--cyan-glow);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      padding: 28px;
+      position: relative;
+    }
+    .wallet-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: #080d1a;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .wallet-list-item:hover {
+      border-color: var(--cyan);
+      background: rgba(0, 240, 255, 0.05);
+      transform: translateY(-2px);
+    }
+    .wallet-list-item-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .wallet-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      background: #131c33;
+    }
+
+    /* Wrong Network Banner */
+    .network-banner {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
+      border: 1px solid var(--red);
+      color: #fca5a5;
+      padding: 12px 24px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -443,20 +534,71 @@
       </div>
     </div>
     <div class="header-actions">
-      <div class="net-badge">
-        <div class="net-dot"></div>
-        <span>Sui Testnet Live</span>
+      <div class="net-badge" id="header-net-badge">
+        <div class="net-dot" id="header-net-dot"></div>
+        <span id="header-net-label">Sui Testnet Live</span>
       </div>
-      <div class="wallet-chip">
-        <span id="active-wallet-label">0xaf41...99f8</span>
-        <button class="btn btn-outline btn-sm" id="btn-change-wallet" style="margin-left:6px;">Change</button>
+
+      <!-- Connect Button when Disconnected -->
+      <button class="btn btn-cyan btn-sm" id="btn-connect-wallet" style="display:none;">
+        🔗 Connect Sui Wallet
+      </button>
+
+      <!-- Connected Wallet Pill with Interactive Dropdown -->
+      <div class="wallet-chip-container" id="wallet-chip-container" style="position:relative; display:none;">
+        <div class="wallet-chip" id="wallet-chip-btn" style="cursor:pointer; user-select:none;">
+          <span id="active-wallet-icon">🤖</span>
+          <span id="active-wallet-label">0xaf41...99f8</span>
+          <span id="active-wallet-sui" class="badge badge-purple" style="font-size:11px; margin-left:4px;">0.00 SUI</span>
+          <span style="font-size:10px; color:var(--text-dim); margin-left:4px;">▼</span>
+        </div>
+
+        <!-- Cyberpunk Wallet Dropdown Menu -->
+        <div id="wallet-dropdown-menu" class="wallet-dropdown" style="display:none;">
+          <div class="wallet-dropdown-header">
+            <div>
+              <div style="font-family:'Chakra Petch'; font-size:14px; font-weight:700; color:#fff;" id="dropdown-wallet-name">Sui Wallet</div>
+              <div style="font-size:11px; color:var(--text-dim);" id="dropdown-network-name">Network: Sui Testnet</div>
+            </div>
+            <span class="badge badge-success" id="dropdown-auth-badge">SIWS Verified</span>
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">CONNECTED SUI ADDRESS</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#070b16; padding:8px 10px; border-radius:6px; border:1px solid var(--card-border);">
+              <span id="dropdown-full-address" style="font-family:'JetBrains Mono'; font-size:11px; color:var(--cyan); word-break:break-all;">0x...</span>
+              <button class="btn btn-outline btn-sm" id="btn-copy-address" style="padding:4px 8px; font-size:11px; margin-left:6px;">Copy</button>
+            </div>
+          </div>
+
+          <div style="background:#070b16; border-radius:8px; padding:10px; margin-bottom:14px; border:1px solid var(--card-border);">
+            <div class="wallet-dropdown-row">
+              <span style="color:var(--text-dim);">SUI Gas Balance</span>
+              <strong id="dropdown-sui-balance" style="color:#fff;">0.0000 SUI</strong>
+            </div>
+            <div class="wallet-dropdown-row">
+              <span style="color:var(--text-dim);">RRC In-Game Credits</span>
+              <strong id="dropdown-rrc-balance" style="color:var(--cyan);">0 RRC</strong>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a id="dropdown-explorer-link" class="btn btn-outline btn-sm" href="#" target="_blank" style="text-align:center; display:block;">
+              Explorer Address Profile ↗
+            </a>
+            <button class="btn btn-outline btn-sm" id="btn-disconnect-wallet" style="color:var(--red); border-color:var(--red); width:100%;">
+              🔌 Disconnect Wallet
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
 
   <!-- NAVIGATION TABS -->
   <nav class="tab-bar">
-    <button class="tab-btn active" data-tab="tab-gov">🏛️ Governance & DAO</button>
+    <button class="tab-btn active" data-tab="tab-account">👤 My Mech Account</button>
+    <button class="tab-btn" data-tab="tab-gov">🏛️ Governance & DAO</button>
     <button class="tab-btn" data-tab="tab-settlement">🎯 Match Rewards & Settlement</button>
     <button class="tab-btn" data-tab="tab-txs">📊 Live Transactions</button>
     <button class="tab-btn" data-tab="tab-tokens">🪙 Tokenomics & Treasury</button>
@@ -470,8 +612,128 @@
   <!-- MAIN VIEW CONTAINER -->
   <main>
 
+    <!-- WRONG NETWORK ALERT BANNER -->
+    <div id="banner-wrong-network" class="network-banner">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:20px;">⚠️</span>
+        <div>
+          <strong style="color:#fff;">Network Mismatch Detected:</strong>
+          Connected wallet is configured for <span id="wrong-network-name" style="color:var(--amber); font-weight:700;">Unknown Network</span>.
+          Robot Rumble requires <strong style="color:var(--cyan);">Sui Testnet</strong> (<code style="color:#fff;">sui:testnet</code>).
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" id="btn-switch-network-help" style="border-color:var(--red); color:#fff;">
+        Switch to Testnet in Wallet Settings
+      </button>
+    </div>
+
+    <!-- TAB 0: MY MECH ACCOUNT -->
+    <div id="tab-account" class="tab-content active">
+      <div id="account-disconnected-view" style="display:none;">
+        <div class="card" style="text-align:center; padding:48px 24px; border-color:var(--cyan);">
+          <div style="font-size:48px; margin-bottom:16px;">🤖</div>
+          <h2 style="font-family:'Chakra Petch'; font-size:24px; color:#fff; margin-bottom:8px;">CONNECT YOUR SUI WALLET</h2>
+          <p style="font-size:14px; color:var(--text-dim); max-width:540px; margin:0 auto 24px; line-height:1.6;">
+            Connect your standard Sui Testnet wallet (Sui Wallet, Suiet, Nightly, or Dev Pilot) to inspect your personalized Mech NFTs, RRC token balances, pilot profile stats, and vote on DAO governance.
+          </p>
+          <button class="btn btn-cyan" id="btn-account-connect-trigger" style="padding:14px 32px; font-size:15px;">
+            🔗 Connect Sui Wallet
+          </button>
+        </div>
+      </div>
+
+      <div id="account-connected-view">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Connected Pilot</div>
+            <div class="kpi-val" id="acc-kpi-address" style="font-size:20px; font-family:'JetBrains Mono';">0x...</div>
+            <div class="kpi-sub" id="acc-kpi-auth-status">SIWS Verified Session</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">SUI Gas Balance</div>
+            <div class="kpi-val" id="acc-kpi-sui" style="color:var(--cyan);">0.0000 SUI</div>
+            <div class="kpi-sub">Sui Testnet Native Coin</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">RRC Token Balance</div>
+            <div class="kpi-val" id="acc-kpi-rrc" style="color:var(--purple);">0 RRC</div>
+            <div class="kpi-sub">Robot Credits In-Game Token</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Owned Mech NFTs</div>
+            <div class="kpi-val" id="acc-kpi-gear-count">0</div>
+            <div class="kpi-sub">On-Chain Combat Gear</div>
+          </div>
+        </div>
+
+        <!-- Pilot Profile Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🪪 On-Chain Player Profile</div>
+            <div id="acc-profile-badge" class="badge badge-warning">Checking Profile...</div>
+          </div>
+          <div id="acc-profile-details" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:16px;">
+            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
+              <div style="font-size:11px; color:var(--text-dim);">LEVEL</div>
+              <div id="acc-prof-level" style="font-size:22px; font-weight:700; color:var(--cyan);">1</div>
+            </div>
+            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
+              <div style="font-size:11px; color:var(--text-dim);">EXPERIENCE (XP)</div>
+              <div id="acc-prof-xp" style="font-size:22px; font-weight:700; color:#fff;">0 XP</div>
+            </div>
+            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
+              <div style="font-size:11px; color:var(--text-dim);">VICTORIES</div>
+              <div id="acc-prof-wins" style="font-size:22px; font-weight:700; color:var(--green);">0</div>
+            </div>
+            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
+              <div style="font-size:11px; color:var(--text-dim);">DEFEATS</div>
+              <div id="acc-prof-losses" style="font-size:22px; font-weight:700; color:var(--red);">0</div>
+            </div>
+          </div>
+          <div id="acc-profile-action">
+            <button class="btn btn-cyan btn-sm" id="btn-acc-init-profile">⚡ Initialize On-Chain Player Profile (Sign with Wallet)</button>
+          </div>
+        </div>
+
+        <!-- Owned Mech Gear Loadout -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🤖 My Owned Mech Gear & Weapons</div>
+            <button class="btn btn-outline btn-sm" id="btn-acc-refresh-gear">🔄 Refresh Gear</button>
+          </div>
+          <div id="acc-gear-grid" class="gear-grid">
+            <div class="empty-state">Loading owned mech gear...</div>
+          </div>
+        </div>
+
+        <!-- Match Reward History for This Wallet -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏆 Match Rewards & Settlement History</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Match ID</th>
+                  <th>Title / Mode</th>
+                  <th>Status</th>
+                  <th>My Score</th>
+                  <th>RRC Rewarded</th>
+                  <th>Settlement Transaction</th>
+                </tr>
+              </thead>
+              <tbody id="acc-matches-table-body">
+                <tr><td colspan="6" class="empty-state">No matches found for this wallet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 1: GOVERNANCE & DAO -->
-    <div id="tab-gov" class="tab-content active">
+    <div id="tab-gov" class="tab-content">
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Active Proposals</div>
@@ -877,25 +1139,422 @@
 
   </main>
 
+  <!-- WALLET SELECTION MODAL -->
+  <div id="modal-wallet-connect" class="modal-overlay">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div style="font-family:'Chakra Petch'; font-size:18px; font-weight:700; text-transform:uppercase; color:#fff;">
+          🔗 Connect Sui Wallet
+        </div>
+        <button id="btn-close-wallet-modal" style="background:transparent; border:0; color:var(--text-dim); font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+
+      <p style="font-size:13px; color:var(--text-dim); margin-bottom:18px; line-height:1.5;">
+        Select an installed wallet compliant with the Sui Wallet Standard to sign transactions and access your Mech assets on <strong style="color:var(--cyan);">Sui Testnet</strong>.
+      </p>
+
+      <div id="wallet-modal-detected-list" style="margin-bottom:16px;">
+        <!-- Dynamically rendered list of installed wallets -->
+      </div>
+
+      <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:14px; margin-top:14px;">
+        <div style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700; margin-bottom:10px;">
+          Developer & Headless Testing Mode
+        </div>
+        <div class="wallet-list-item" id="wallet-item-dev-pilot">
+          <div class="wallet-list-item-left">
+            <div class="wallet-item-icon">🔑</div>
+            <div>
+              <div style="font-family:'Chakra Petch'; font-weight:700; color:#fff;">Testnet Pilot Keypair</div>
+              <div style="font-size:11px; color:var(--cyan);">Instant Testnet Address (0xaf41...99f8)</div>
+            </div>
+          </div>
+          <span class="badge badge-purple">Active Pilot</span>
+        </div>
+      </div>
+
+      <div id="wallet-modal-install-help" style="margin-top:14px; font-size:12px; color:var(--text-dim); text-align:center;">
+        Don't have a wallet? Get <a href="https://chrome.google.com/webstore/detail/sui-wallet/opcgpfmipidbgpenhmajoajpbobppdil" target="_blank" style="color:var(--cyan); text-decoration:underline;">Official Sui Wallet</a> or <a href="https://suiet.app/" target="_blank" style="color:var(--cyan); text-decoration:underline;">Suiet</a>.
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
   <script type="module">
-    let activeAddress = localStorage.getItem('rr_active_wallet') || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
+    let activeAddress = localStorage.getItem('rr_active_wallet') || null;
+    let walletName = localStorage.getItem('rr_wallet_name') || 'Sui Wallet';
+    let sessionToken = localStorage.getItem('rr_session_token') || null;
+    let isConnected = Boolean(activeAddress);
+    let currentWallet = null;
+    let currentAccount = null;
+    let registeredWallets = [];
+
     const EXPLORER_URL = 'https://suiscan.xyz/testnet/tx/';
+    const EXPLORER_ADDR_URL = 'https://suiscan.xyz/testnet/address/';
 
-    const walletLabel = document.getElementById('active-wallet-label');
     const toast = document.getElementById('toast');
-
-    function updateWalletUI() {
-      walletLabel.textContent = activeAddress.slice(0, 6) + '...' + activeAddress.slice(-4);
-    }
-    updateWalletUI();
-
     function showToast(msg, isError = false) {
       toast.textContent = msg;
       toast.style.borderColor = isError ? 'var(--red)' : 'var(--cyan)';
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 5000);
+    }
+
+    // UI elements
+    const connectBtn = document.getElementById('btn-connect-wallet');
+    const chipContainer = document.getElementById('wallet-chip-container');
+    const chipBtn = document.getElementById('wallet-chip-btn');
+    const dropdownMenu = document.getElementById('wallet-dropdown-menu');
+    const walletLabel = document.getElementById('active-wallet-label');
+    const walletSuiLabel = document.getElementById('active-wallet-sui');
+    const dropdownWalletName = document.getElementById('dropdown-wallet-name');
+    const dropdownNetworkName = document.getElementById('dropdown-network-name');
+    const dropdownFullAddress = document.getElementById('dropdown-full-address');
+    const dropdownSuiBalance = document.getElementById('dropdown-sui-balance');
+    const dropdownRrcBalance = document.getElementById('dropdown-rrc-balance');
+    const dropdownExplorerLink = document.getElementById('dropdown-explorer-link');
+    const disconnectBtn = document.getElementById('btn-disconnect-wallet');
+    const copyAddressBtn = document.getElementById('btn-copy-address');
+    const modal = document.getElementById('modal-wallet-connect');
+    const modalCloseBtn = document.getElementById('btn-close-wallet-modal');
+    const modalDetectedList = document.getElementById('wallet-modal-detected-list');
+    const devPilotItem = document.getElementById('wallet-item-dev-pilot');
+    const accountConnectTrigger = document.getElementById('btn-account-connect-trigger');
+
+    function updateWalletHeaderUI() {
+      if (isConnected && activeAddress) {
+        connectBtn.style.display = 'none';
+        chipContainer.style.display = 'block';
+        walletLabel.textContent = activeAddress.slice(0, 6) + '...' + activeAddress.slice(-4);
+        dropdownFullAddress.textContent = activeAddress;
+        dropdownExplorerLink.href = EXPLORER_ADDR_URL + activeAddress;
+        dropdownWalletName.textContent = walletName;
+
+        document.getElementById('account-disconnected-view').style.display = 'none';
+        document.getElementById('account-connected-view').style.display = 'block';
+        document.getElementById('acc-kpi-address').textContent = activeAddress.slice(0, 6) + '...' + activeAddress.slice(-4);
+      } else {
+        connectBtn.style.display = 'inline-flex';
+        chipContainer.style.display = 'none';
+        dropdownMenu.style.display = 'none';
+
+        document.getElementById('account-disconnected-view').style.display = 'block';
+        document.getElementById('account-connected-view').style.display = 'none';
+      }
+    }
+    updateWalletHeaderUI();
+
+    // Dropdown toggle & click outside
+    chipBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => {
+      dropdownMenu.style.display = 'none';
+    });
+    dropdownMenu.addEventListener('click', (e) => e.stopPropagation());
+
+    // Copy address
+    copyAddressBtn.addEventListener('click', () => {
+      if (activeAddress) {
+        navigator.clipboard.writeText(activeAddress);
+        copyAddressBtn.textContent = 'Copied!';
+        setTimeout(() => { copyAddressBtn.textContent = 'Copy'; }, 2000);
+        showToast('Address copied to clipboard!');
+      }
+    });
+
+    // Disconnect
+    disconnectBtn.addEventListener('click', async () => {
+      if (sessionToken) {
+        try {
+          await fetch('/auth/logout', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${sessionToken}` }
+          });
+        } catch (e) {}
+      }
+      activeAddress = null;
+      currentWallet = null;
+      currentAccount = null;
+      sessionToken = null;
+      isConnected = false;
+      localStorage.removeItem('rr_active_wallet');
+      localStorage.removeItem('rr_wallet_name');
+      localStorage.removeItem('rr_session_token');
+      dropdownMenu.style.display = 'none';
+      updateWalletHeaderUI();
+      loadAll();
+      showToast('Wallet disconnected.');
+    });
+
+    // Modal controls
+    function openWalletModal() {
+      renderDetectedWallets();
+      modal.style.display = 'grid';
+    }
+    function closeWalletModal() {
+      modal.style.display = 'none';
+    }
+    connectBtn.addEventListener('click', openWalletModal);
+    if (accountConnectTrigger) accountConnectTrigger.addEventListener('click', openWalletModal);
+    modalCloseBtn.addEventListener('click', closeWalletModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeWalletModal();
+    });
+
+    // Developer Pilot option in modal
+    devPilotItem.addEventListener('click', () => {
+      activeAddress = '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
+      walletName = 'Testnet Pilot (Dev Mode)';
+      isConnected = true;
+      currentWallet = { name: walletName, isDevMode: true };
+      currentAccount = { address: activeAddress, chains: ['sui:testnet'] };
+      localStorage.setItem('rr_active_wallet', activeAddress);
+      localStorage.setItem('rr_wallet_name', walletName);
+      closeWalletModal();
+      updateWalletHeaderUI();
+      verifyNetwork(currentWallet, currentAccount);
+      loadAll();
+      showToast(`Connected as Testnet Pilot (${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)})`);
+    });
+
+    // Discover Wallet Standard implementations
+    function discoverWallets() {
+      window.addEventListener('wallet-standard:register-wallet', (event) => {
+        try {
+          event.detail({
+            register(...wallets) {
+              wallets.forEach(w => {
+                if (!registeredWallets.some(existing => existing.name === w.name)) {
+                  registeredWallets.push(w);
+                }
+              });
+              renderDetectedWallets();
+            }
+          });
+        } catch (e) {}
+      });
+
+      try {
+        window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {
+          detail: {
+            register(...wallets) {
+              wallets.forEach(w => {
+                if (!registeredWallets.some(existing => existing.name === w.name)) {
+                  registeredWallets.push(w);
+                }
+              });
+              renderDetectedWallets();
+            }
+          }
+        }));
+      } catch (e) {}
+
+      const checkInjected = () => {
+        if (window.suiWallet && !registeredWallets.some(w => w.name === 'Sui Wallet')) {
+          registeredWallets.push({
+            name: 'Sui Wallet',
+            icon: '💧',
+            injected: window.suiWallet,
+            features: window.suiWallet.features || {},
+            accounts: window.suiWallet.accounts || [],
+          });
+        }
+        if (window.suiet && !registeredWallets.some(w => w.name === 'Suiet')) {
+          registeredWallets.push({
+            name: 'Suiet',
+            icon: '🔷',
+            injected: window.suiet,
+            features: window.suiet.features || {},
+            accounts: window.suiet.accounts || [],
+          });
+        }
+        if (window.ethosWallet && !registeredWallets.some(w => w.name === 'Ethos Wallet')) {
+          registeredWallets.push({
+            name: 'Ethos Wallet',
+            icon: '🌐',
+            injected: window.ethosWallet,
+            features: window.ethosWallet.features || {},
+            accounts: window.ethosWallet.accounts || [],
+          });
+        }
+        if (window.nightly?.sui && !registeredWallets.some(w => w.name === 'Nightly')) {
+          registeredWallets.push({
+            name: 'Nightly',
+            icon: '🌙',
+            injected: window.nightly.sui,
+            features: window.nightly.sui.features || {},
+            accounts: window.nightly.sui.accounts || [],
+          });
+        }
+        renderDetectedWallets();
+      };
+      checkInjected();
+      setTimeout(checkInjected, 400);
+      setTimeout(checkInjected, 1200);
+    }
+    discoverWallets();
+
+    function renderDetectedWallets() {
+      if (!modalDetectedList) return;
+      if (registeredWallets.length === 0) {
+        modalDetectedList.innerHTML = `
+          <div style="background:#080d1a; border:1px solid var(--card-border); border-radius:10px; padding:14px; text-align:center; font-size:12px; color:var(--text-dim);">
+            No browser extension wallets detected yet.<br/>
+            You can use the <strong>Testnet Pilot Keypair</strong> below for headless testing or install a Sui wallet extension.
+          </div>
+        `;
+        return;
+      }
+
+      modalDetectedList.innerHTML = '';
+      registeredWallets.forEach(w => {
+        const item = document.createElement('div');
+        item.className = 'wallet-list-item';
+        item.innerHTML = `
+          <div class="wallet-list-item-left">
+            <div class="wallet-item-icon">${w.icon && typeof w.icon === 'string' && w.icon.startsWith('http') ? `<img src="${w.icon}" width="24" height="24" style="border-radius:4px;" />` : (w.icon || '💼')}</div>
+            <div>
+              <div style="font-family:'Chakra Petch'; font-weight:700; color:#fff;">${w.name}</div>
+              <div style="font-size:11px; color:var(--green);">Detected &bull; Standard Compatible</div>
+            </div>
+          </div>
+          <button class="btn btn-cyan btn-sm">Connect</button>
+        `;
+        item.addEventListener('click', () => connectRealWallet(w));
+        modalDetectedList.appendChild(item);
+      });
+    }
+
+    async function connectRealWallet(wallet) {
+      try {
+        showToast(`Connecting to ${wallet.name}...`);
+        let accounts = [];
+
+        if (wallet.features && wallet.features['standard:connect']) {
+          const res = await wallet.features['standard:connect'].connect();
+          accounts = res.accounts || wallet.accounts || [];
+        } else if (wallet.injected && typeof wallet.injected.requestPermissions === 'function') {
+          await wallet.injected.requestPermissions();
+          accounts = (await wallet.injected.getAccounts()) || [];
+        } else if (wallet.injected && typeof wallet.injected.connect === 'function') {
+          const res = await wallet.injected.connect();
+          accounts = res.accounts || [];
+        }
+
+        if (!accounts || accounts.length === 0) {
+          throw new Error('No accounts authorized in wallet');
+        }
+
+        const account = typeof accounts[0] === 'string' ? { address: accounts[0] } : accounts[0];
+        currentWallet = wallet;
+        currentAccount = account;
+        activeAddress = account.address;
+        walletName = wallet.name;
+        isConnected = true;
+        localStorage.setItem('rr_active_wallet', activeAddress);
+        localStorage.setItem('rr_wallet_name', walletName);
+
+        verifyNetwork(wallet, account);
+        await performSiwsAuth(wallet, account);
+
+        closeWalletModal();
+        updateWalletHeaderUI();
+        loadAll();
+        showToast(`Connected to ${wallet.name}!`);
+
+        if (wallet.features && wallet.features['standard:events']) {
+          wallet.features['standard:events'].on('change', (changes) => {
+            if (changes.accounts && changes.accounts.length > 0) {
+              const newAcc = changes.accounts[0];
+              if (newAcc.address !== activeAddress) {
+                activeAddress = newAcc.address;
+                currentAccount = newAcc;
+                localStorage.setItem('rr_active_wallet', activeAddress);
+                showToast(`Switched account to ${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`);
+                updateWalletHeaderUI();
+                loadAll();
+              }
+            }
+            if (changes.chains) {
+              verifyNetwork(wallet, currentAccount);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Wallet connection error:', err);
+        showToast(`Connection failed: ${err.message || 'Cancelled by user'}`, true);
+      }
+    }
+
+    async function performSiwsAuth(wallet, account) {
+      try {
+        const nonceRes = await fetch(`/auth/nonce?address=${account.address}`).then(r => r.json());
+        if (!nonceRes.ok) return;
+
+        showToast('Please approve the ownership verification signature in your wallet...');
+        const msgBytes = new TextEncoder().encode(nonceRes.message);
+        let signature = null;
+
+        if (wallet.features && wallet.features['sui:signPersonalMessage']) {
+          const res = await wallet.features['sui:signPersonalMessage'].signPersonalMessage({
+            message: msgBytes,
+            account,
+          });
+          signature = res.signature;
+        } else if (wallet.injected && typeof wallet.injected.signPersonalMessage === 'function') {
+          const res = await wallet.injected.signPersonalMessage({ message: msgBytes });
+          signature = res.signature;
+        }
+
+        if (signature) {
+          const verifyRes = await fetch('/auth/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              address: account.address,
+              signature,
+              nonce: nonceRes.nonce,
+            })
+          }).then(r => r.json());
+
+          if (verifyRes.ok && verifyRes.sessionToken) {
+            sessionToken = verifyRes.sessionToken;
+            localStorage.setItem('rr_session_token', sessionToken);
+            document.getElementById('dropdown-auth-badge').textContent = 'SIWS Verified ✓';
+            showToast('Cryptographic wallet ownership verified!');
+          }
+        }
+      } catch (e) {
+        console.warn('SIWS optional sign bypassed or declined:', e.message);
+      }
+    }
+
+    function verifyNetwork(wallet, account) {
+      const chains = account?.chains || wallet?.chains || ['sui:testnet'];
+      const isTestnet = chains.includes('sui:testnet') || chains.length === 0;
+
+      const netBadge = document.getElementById('header-net-badge');
+      const netLabel = document.getElementById('header-net-label');
+      const banner = document.getElementById('banner-wrong-network');
+
+      if (!isTestnet) {
+        const chainName = chains[0] || 'Unknown Network';
+        banner.style.display = 'flex';
+        document.getElementById('wrong-network-name').textContent = chainName;
+        netBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+        netBadge.style.borderColor = 'var(--red)';
+        netBadge.style.color = 'var(--red)';
+        netLabel.textContent = `⚠️ Wrong Network: ${chainName}`;
+      } else {
+        banner.style.display = 'none';
+        netBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+        netBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        netBadge.style.color = 'var(--green)';
+        netLabel.textContent = 'Sui Testnet Live';
+      }
     }
 
     // Tabs Switcher
@@ -909,21 +1568,116 @@
       });
     });
 
-    // Change Wallet
-    document.getElementById('btn-change-wallet').addEventListener('click', () => {
-      const addr = prompt('Enter player / voter Sui address (0x...):', activeAddress);
-      if (addr && addr.startsWith('0x')) {
-        activeAddress = addr;
-        localStorage.setItem('rr_active_wallet', addr);
-        updateWalletUI();
-        fetch('/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: addr })
-        });
-        loadAll();
+    // 0. Load My Mech Account Overview
+    async function loadMyAccount() {
+      if (!activeAddress) return;
+      try {
+        const headers = sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
+        const res = await fetch(`/account/${activeAddress}`, { headers }).then(r => r.json());
+        if (!res.ok) return;
+
+        document.getElementById('acc-kpi-address').textContent = activeAddress.slice(0, 6) + '...' + activeAddress.slice(-4);
+        document.getElementById('acc-kpi-sui').textContent = `${res.balances.sui} SUI`;
+        document.getElementById('acc-kpi-rrc').textContent = `${res.balances.credits} RRC`;
+        document.getElementById('acc-kpi-gear-count').textContent = res.gearCount;
+        document.getElementById('dropdown-sui-balance').textContent = `${res.balances.sui} SUI`;
+        document.getElementById('dropdown-rrc-balance').textContent = `${res.balances.credits} RRC`;
+        walletSuiLabel.textContent = `${res.balances.sui} SUI`;
+
+        const profBadge = document.getElementById('acc-profile-badge');
+        const profDetails = document.getElementById('acc-profile-details');
+        const profAction = document.getElementById('acc-profile-action');
+
+        if (res.profile) {
+          profBadge.className = 'badge badge-success';
+          profBadge.textContent = `Pilot Lv ${res.profile.level}`;
+          profDetails.style.display = 'grid';
+          profAction.style.display = 'none';
+          document.getElementById('acc-prof-level').textContent = res.profile.level;
+          document.getElementById('acc-prof-xp').textContent = `${res.profile.xp} XP`;
+          document.getElementById('acc-prof-wins').textContent = res.profile.wins;
+          document.getElementById('acc-prof-losses').textContent = res.profile.losses;
+        } else {
+          profBadge.className = 'badge badge-warning';
+          profBadge.textContent = 'Profile Not Initialized';
+          profDetails.style.display = 'none';
+          profAction.style.display = 'block';
+        }
+
+        const gearGrid = document.getElementById('acc-gear-grid');
+        if (!res.gear || res.gear.length === 0) {
+          gearGrid.innerHTML = '<div class="empty-state">No Mech gear owned yet. Simulate match victory or complete battles to earn NFTs!</div>';
+        } else {
+          gearGrid.innerHTML = '';
+          res.gear.forEach(g => {
+            const card = document.createElement('div');
+            card.className = `gear-card ${g.rarity.toLowerCase()}`;
+            const upgradeCost = g.level * 10;
+            card.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="badge badge-purple">${g.kind}</span>
+                <span class="badge ${g.rarity === 'Rare' ? 'badge-warning' : 'badge-success'}">${g.rarity}</span>
+              </div>
+              <div class="gear-name">${g.name}</div>
+              <div class="gear-stats-row"><span>Level</span><strong>${g.level}</strong></div>
+              <div class="gear-stats-row"><span>Damage</span><strong style="color:var(--cyan);">${g.damage}</strong></div>
+              <div class="gear-stats-row"><span>Durability</span><strong>${g.durability}/100</strong></div>
+              <div class="gear-stats-row"><span>Wins</span><strong>${g.wins}</strong></div>
+              <div style="margin-top:14px; display:flex; gap:8px;">
+                <button class="btn btn-cyan btn-sm btn-acc-upgrade" data-id="${g.id}" style="flex:1;">
+                  Upgrade (-${upgradeCost} RRC)
+                </button>
+                <a class="btn btn-outline btn-sm" href="${g.url}" target="_blank">Suiscan ↗</a>
+              </div>
+            `;
+            gearGrid.appendChild(card);
+          });
+
+          gearGrid.querySelectorAll('.btn-acc-upgrade').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const wId = btn.getAttribute('data-id');
+              await executeUpgrade(wId);
+            });
+          });
+        }
+
+        const tbody = document.getElementById('acc-matches-table-body');
+        if (!res.matchHistory || res.matchHistory.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No matches recorded for this wallet yet.</td></tr>';
+        } else {
+          tbody.innerHTML = '';
+          res.matchHistory.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><strong>#${m.matchId}</strong></td>
+              <td>${m.title} <div style="font-size:11px; color:var(--text-dim);">${m.gameMode}</div></td>
+              <td><span class="badge ${m.status === 'SETTLED' ? 'badge-success' : 'badge-warning'}">${m.status}</span></td>
+              <td><strong>${m.score} pts</strong></td>
+              <td><strong style="color:var(--cyan);">${m.rewardRRC} RRC</strong></td>
+              <td>${m.settlementTx ? `<a class="digest-link" href="${m.settlementTx.url}" target="_blank">${m.settlementTx.digest.slice(0, 8)}... ↗</a>` : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch (e) {
+        console.error('Account load error', e);
+      }
+    }
+
+    // Initialize Profile Action
+    document.getElementById('btn-acc-init-profile')?.addEventListener('click', async () => {
+      showToast('Initializing player profile on Sui Testnet...');
+      const res = await fetch('/player/create', { method: 'POST' }).then(r => r.json());
+      if (res.ok) {
+        showToast(`Profile initialized on-chain! Tx: ${res.digest.slice(0, 8)}...`);
+        loadMyAccount();
+        loadTransactions();
+      } else {
+        showToast(`Profile error: ${res.error}`, true);
       }
     });
+
+    document.getElementById('btn-acc-refresh-gear')?.addEventListener('click', loadMyAccount);
 
     // 1. Load Governance & Proposals
     async function loadGovernance() {
@@ -1477,7 +2231,31 @@
     document.getElementById('btn-refresh-upgrades').addEventListener('click', loadUpgrades);
     document.getElementById('btn-refresh-market').addEventListener('click', loadMarketplace);
 
+    async function executeUpgrade(wId) {
+      if (!activeAddress) {
+        openWalletModal();
+        return;
+      }
+      showToast('Upgrading weapon & burning RRC on Sui Testnet...');
+      const upgRes = await fetch('/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: activeAddress, weaponId: wId })
+      }).then(r => r.json());
+
+      if (upgRes.ok) {
+        showToast(`Upgraded! Level ${upgRes.newLevel}, Damage ${upgRes.newDamage}. Tx: ${upgRes.digest.slice(0, 8)}...`);
+        loadMyAccount();
+        loadGear();
+        loadTreasury();
+        loadUpgrades();
+      } else {
+        showToast(`Upgrade error: ${upgRes.error}`, true);
+      }
+    }
+
     function loadAll() {
+      loadMyAccount();
       loadGovernance();
       loadTransactions();
       loadTreasury();
