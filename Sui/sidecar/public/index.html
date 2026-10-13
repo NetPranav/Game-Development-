@@ -648,10 +648,38 @@
       margin-bottom: 8px;
       cursor: pointer;
       transition: all 0.15s ease;
+      overflow: hidden;
     }
     .wallet-item:hover {
       border-color: var(--cyan);
       background: #f0f9ff;
+    }
+    .wallet-icon-box {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .wallet-icon-box img {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      object-fit: contain;
+      display: block;
+    }
+    .wallet-icon-box svg {
+      width: 24px;
+      height: 24px;
+      display: block;
+    }
+    #active-wallet-icon img {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      display: inline-block;
+      vertical-align: middle;
     }
 
     /* Toast */
@@ -1723,6 +1751,26 @@
       if (rrcBurned) rrcBurned.textContent = '-- RRC';
       const matchesCount = document.getElementById('ov-kpi-matches');
       if (matchesCount) matchesCount.textContent = '--';
+
+      const iconEl = document.getElementById('active-wallet-icon');
+      if (iconEl) iconEl.textContent = '🤖';
+    }
+
+    function renderWalletIcon(icon) {
+      if (!icon) return '💼';
+      if (typeof icon === 'string') {
+        const trimmed = icon.trim();
+        if (trimmed.startsWith('data:image') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          return `<img src="${trimmed}" alt="" />`;
+        }
+        if (trimmed.startsWith('<svg')) {
+          return trimmed;
+        }
+        if (trimmed.length <= 4) {
+          return trimmed;
+        }
+      }
+      return '💼';
     }
 
     function updateWalletHeaderUI() {
@@ -1733,6 +1781,16 @@
         dropdownFullAddress.textContent = activeAddress;
         dropdownExplorerLink.href = EXPLORER_ADDR_URL + activeAddress;
         dropdownWalletName.textContent = walletName;
+
+        const iconEl = document.getElementById('active-wallet-icon');
+        const storedIcon = localStorage.getItem('rr_wallet_icon') || (currentWallet && currentWallet.icon);
+        if (iconEl) {
+          if (storedIcon) {
+            iconEl.innerHTML = renderWalletIcon(storedIcon);
+          } else {
+            iconEl.textContent = '🤖';
+          }
+        }
 
         const discView = document.getElementById('account-disconnected-view');
         const connView = document.getElementById('account-connected-view');
@@ -1791,6 +1849,7 @@
       isConnected = false;
       localStorage.removeItem('rr_active_wallet');
       localStorage.removeItem('rr_wallet_name');
+      localStorage.removeItem('rr_wallet_icon');
       localStorage.removeItem('rr_session_token');
       dropdownMenu.style.display = 'none';
       clearAllData();
@@ -1928,14 +1987,18 @@
         const item = document.createElement('div');
         item.className = 'wallet-item';
         item.innerHTML = `
-          <div style="display:flex; align-items:center; gap:10px;">
-            <div style="font-size:18px;">${w.icon && typeof w.icon === 'string' && w.icon.startsWith('http') ? `<img src="${w.icon}" width="20" height="20" style="border-radius:4px;" />` : (w.icon || '💼')}</div>
-            <div>
-              <div style="font-family:'Chakra Petch'; font-weight:700; color:var(--text); font-size:13px;">${w.name}</div>
-              <div style="font-size:10px; color:var(--green);">Standard Compatible</div>
+          <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+            <div class="wallet-icon-box">
+              ${renderWalletIcon(w.icon)}
+            </div>
+            <div style="min-width:0;">
+              <div style="font-family:'Chakra Petch', sans-serif; font-weight:700; color:var(--text); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${w.name}
+              </div>
+              <div style="font-size:10px; color:var(--green); font-weight:600;">Standard Compatible</div>
             </div>
           </div>
-          <button class="btn btn-cyan btn-sm">Connect</button>
+          <button class="btn btn-cyan btn-sm" style="flex-shrink:0;">Connect</button>
         `;
         item.addEventListener('click', () => connectRealWallet(w));
         modalDetectedList.appendChild(item);
@@ -1970,6 +2033,9 @@
         isConnected = true;
         localStorage.setItem('rr_active_wallet', activeAddress);
         localStorage.setItem('rr_wallet_name', walletName);
+        if (wallet.icon) {
+          localStorage.setItem('rr_wallet_icon', typeof wallet.icon === 'string' ? wallet.icon : '');
+        }
 
         verifyNetwork(wallet, account);
         await performSiwsAuth(wallet, account);
