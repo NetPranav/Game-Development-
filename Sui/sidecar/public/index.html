@@ -1425,8 +1425,9 @@
                 <div id="acc-prof-losses" style="font-size:18px; font-weight:700; color:var(--red);">0</div>
               </div>
             </div>
-            <div id="acc-profile-action">
+            <div id="acc-profile-action" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
               <button class="btn btn-cyan btn-sm" id="btn-acc-init-profile">⚡ Initialize Player Profile</button>
+              <button class="btn btn-outline btn-sm" id="btn-acc-faucet" title="Request 0.05 SUI for gas fees">💧 Request Testnet Gas (0.05 SUI)</button>
             </div>
           </div>
 
@@ -1666,6 +1667,28 @@
 
     const EXPLORER_URL = 'https://suiscan.xyz/testnet/tx/';
     const EXPLORER_ADDR_URL = 'https://suiscan.xyz/testnet/address/';
+
+    let deployedPackageId = '0x77c5a43a31826c687dd2d3152bbbfe56eca8c8c2c979618c62468f4f1b7fb017';
+    let adminKeypairAddress = '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
+    fetch('/health').then(r => r.json()).then(h => {
+      if (h.ok) {
+        if (h.package) deployedPackageId = h.package;
+        if (h.adminAddress) adminKeypairAddress = h.adminAddress;
+      }
+    }).catch(() => {});
+
+    let TransactionClass = null;
+    async function getTransactionClass() {
+      if (!TransactionClass) {
+        try {
+          const mod = await import('https://esm.sh/@mysten/sui@2.35.0/transactions');
+          TransactionClass = mod.Transaction;
+        } catch (e) {
+          console.warn('Failed to dynamically load Transaction from CDN:', e);
+        }
+      }
+      return TransactionClass;
+    }
 
     const toast = document.getElementById('toast');
     function showToast(msg, isError = false) {
@@ -2303,17 +2326,122 @@
       }
     }
 
-    document.getElementById('btn-acc-init-profile')?.addEventListener('click', async () => {
-      showToast('Initializing player profile on Sui Testnet...');
-      const res = await fetch('/player/create', { method: 'POST' }).then(r => r.json());
-      if (res.ok) {
-        showToast(`Profile initialized on-chain! Tx: ${res.digest.slice(0, 8)}...`);
-        loadMyAccount();
-        loadTransactions();
-      } else {
-        showToast(`Profile error: ${res.error}`, true);
+    async function requestTestnetGas() {
+      if (!activeAddress) {
+        showToast('Please connect your wallet first.', true);
+        return;
       }
-    });
+      showToast('Requesting 0.05 SUI from faucet on Sui Testnet...');
+      try {
+        const res = await fetch('/faucet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: activeAddress })
+        }).then(r => r.json());
+
+        if (res.ok) {
+          showToast(`0.05 SUI funded! Tx: ${(res.digest || '').slice(0, 8)}...`);
+          await new Promise(r => setTimeout(r, 2000));
+          await loadMyAccount();
+        } else {
+          showToast(`Faucet error: ${res.error}`, true);
+        }
+      } catch (e) {
+        showToast(`Faucet request failed: ${e.message}`, true);
+      }
+    }
+
+    async function handleInitializeProfile() {
+      if (!activeAddress) {
+        showToast('Please connect your wallet first.', true);
+        return;
+      }
+
+      const isDevMode = (currentWallet && currentWallet.isDevMode) ||
+        (adminKeypairAddress && activeAddress.toLowerCase() === adminKeypairAddress.toLowerCase());
+
+      // CASE 1: Testnet Pilot / Dev Mode (Headless backend execution with admin keypair)
+      if (isDevMode || !currentWallet || !currentWallet.features || !currentWallet.features['sui:signAndExecuteTransaction']) {
+        showToast('Initializing pilot profile on Sui Testnet...');
+        try {
+          const res = await fetch('/player/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: activeAddress })
+          }).then(r => r.json());
+
+          if (res.ok) {
+            showToast(`Profile initialized on-chain! Tx: ${(res.digest || '').slice(0, 8)}...`);
+            // Wait 2s for RPC indexer to record owned object
+            await new Promise(r => setTimeout(r, 2000));
+            await loadMyAccount();
+            await loadTransactions();
+            await loadOverview();
+          } else {
+            showToast(`Profile error: ${res.error}`, true);
+          }
+        } catch (e) {
+          showToast(`Request error: ${e.message}`, true);
+        }
+        return;
+      }
+
+      // CASE 2: Connected browser wallet (Slush, Sui Wallet, etc.)
+      try {
+        // 1. Check gas balance. If < 0.005 SUI, auto-fund gas from faucet
+        const accRes = await fetch(`/account/${activeAddress}`).then(r => r.json()).catch(() => null);
+        const suiRaw = accRes?.balances?.suiRaw ?? 0;
+        if (suiRaw < 5_000_000) {
+          showToast('Auto-funding wallet with 0.05 Testnet SUI for gas fees...');
+          try {
+            const fRes = await fetch('/faucet', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ address: activeAddress })
+            }).then(r => r.json());
+            if (fRes.ok) {
+              showToast('Gas funded! Waiting for network confirmation...');
+              await new Promise(r => setTimeout(r, 2000));
+            }
+          } catch (fe) {
+            console.warn('Faucet attempt:', fe);
+          }
+        }
+
+        showToast(`Preparing transaction for ${walletName}...`);
+        const TxClass = await getTransactionClass();
+        if (!TxClass) {
+          throw new Error('Could not load Sui Transaction module.');
+        }
+
+        const tx = new TxClass();
+        tx.moveCall({
+          target: `${deployedPackageId}::player::create_player`,
+        });
+
+        showToast(`Please approve PlayerProfile creation in ${walletName}...`);
+        const signRes = await currentWallet.features['sui:signAndExecuteTransaction'].signAndExecuteTransaction({
+          transaction: tx,
+          account: currentAccount,
+          chain: 'sui:testnet',
+        });
+
+        const digest = signRes.digest || signRes.Transaction?.digest || signRes.effects?.transactionDigest || '';
+        showToast(`Profile initialized on-chain! Tx: ${digest ? digest.slice(0, 8) + '...' : 'Success'}`);
+
+        // Wait 2.5s for Sui node indexing
+        await new Promise(r => setTimeout(r, 2500));
+        await loadMyAccount();
+        await loadTransactions();
+        await loadOverview();
+      } catch (err) {
+        console.error('Wallet profile creation error:', err);
+        showToast(`Wallet action canceled or failed: ${err.message}`, true);
+      }
+    }
+
+    document.getElementById('btn-acc-init-profile')?.addEventListener('click', handleInitializeProfile);
+    document.getElementById('btn-acc-faucet')?.addEventListener('click', requestTestnetGas);
     document.getElementById('btn-acc-refresh-gear')?.addEventListener('click', loadMyAccount);
 
     // ==========================================
@@ -2850,18 +2978,7 @@
       }
     });
 
-    document.getElementById('btn-create-profile')?.addEventListener('click', async () => {
-      showToast('Creating player profile on-chain...');
-      const res = await fetch('/player/create', { method: 'POST' }).then(r => r.json());
-      if (res.ok) {
-        showToast(`Player profile created! Tx: ${res.digest.slice(0, 8)}...`);
-        loadGear();
-        loadTransactions();
-        loadMyAccount();
-      } else {
-        showToast(`Profile error: ${res.error}`, true);
-      }
-    });
+    document.getElementById('btn-create-profile')?.addEventListener('click', handleInitializeProfile);
 
     async function executeUpgrade(wId) {
       const target = activeAddress || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';

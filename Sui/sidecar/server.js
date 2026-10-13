@@ -495,7 +495,32 @@ app.post('/upgrade', wrap(async (req, res) => {
   });
 }));
 
+app.post('/faucet', wrap(async (req, res) => {
+  const address = req.body?.address;
+  if (!isAddress(address)) throw Object.assign(new Error('invalid address'), { status: 400 });
+  const tx = new Transaction();
+  const [coin] = tx.splitCoins(tx.gas, [50_000_000]); // 0.05 SUI for gas
+  tx.transferObjects([coin], address);
+  const result = await executeTx(tx, admin);
+  res.json({
+    ok: true,
+    digest: result.digest,
+    url: EXPLORER + result.digest,
+    amount: '0.05 SUI',
+  });
+}));
+
 app.post('/player/create', wrap(async (req, res) => {
+  const target = req.body?.address;
+  const adminAddr = admin?.toSuiAddress()?.toLowerCase();
+
+  if (target && adminAddr && target.toLowerCase() !== adminAddr) {
+    return res.status(400).json({
+      ok: false,
+      error: 'External wallets must sign PlayerProfile creation directly via their connected wallet so the soulbound profile object is assigned to their own address.',
+    });
+  }
+
   const tx = new Transaction();
   tx.moveCall({
     target: `${PACKAGE_ID}::player::create_player`,
@@ -506,6 +531,7 @@ app.post('/player/create', wrap(async (req, res) => {
     ok: true,
     digest: result.digest,
     url: EXPLORER + result.digest,
+    profileOwner: admin?.toSuiAddress(),
   });
 }));
 
