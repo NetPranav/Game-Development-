@@ -3,411 +3,615 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Robot Rumble — Sui Blockchain Dashboard & Governance</title>
+  <title>Robot Rumble &bull; Sui Blockchain Analytics & Operations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #070a12;
-      --card-bg: #0e1526;
-      --card-hover: #131c33;
-      --card-border: #1b2845;
-      --cyan: #00f0ff;
-      --cyan-glow: rgba(0, 240, 255, 0.25);
-      --amber: #f59e0b;
-      --amber-glow: rgba(245, 158, 11, 0.25);
-      --purple: #a855f7;
+      --bg: #070a13;
+      --sidebar-bg: #0a0e1b;
+      --sidebar-border: #162036;
+      --card-bg: #0d1324;
+      --card-hover: #121a32;
+      --card-border: #19243c;
+      --card-border-subtle: rgba(255, 255, 255, 0.06);
+      --header-bg: rgba(10, 14, 27, 0.85);
+
+      --cyan: #00e5ff;
+      --cyan-subtle: rgba(0, 229, 255, 0.12);
+      --purple: #8b5cf6;
+      --purple-subtle: rgba(139, 92, 246, 0.12);
       --green: #10b981;
+      --green-subtle: rgba(16, 185, 129, 0.12);
+      --amber: #f59e0b;
+      --amber-subtle: rgba(245, 158, 11, 0.12);
       --red: #ef4444;
+      --red-subtle: rgba(239, 68, 68, 0.12);
+
       --text: #f8fafc;
-      --text-dim: #94a3b8;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --sidebar-width: 250px;
+      --header-height: 60px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
       overflow-x: hidden;
+      display: flex;
     }
-    header {
-      background: rgba(14, 21, 38, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--card-border);
-      position: sticky;
+
+    /* === SIDEBAR === */
+    aside.app-sidebar {
+      width: var(--sidebar-width);
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      position: fixed;
       top: 0;
-      z-index: 100;
-      padding: 16px 28px;
+      bottom: 0;
+      left: 0;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      z-index: 90;
+      transition: transform 0.25s ease;
     }
-    .brand {
+
+    .brand-section {
+      height: var(--header-height);
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--sidebar-border);
     }
     .brand-logo {
-      width: 44px;
-      height: 44px;
+      width: 32px;
+      height: 32px;
       background: linear-gradient(135deg, var(--cyan), var(--purple));
-      border-radius: 10px;
+      border-radius: 8px;
       display: grid;
       place-items: center;
       font-weight: 800;
       font-family: 'Chakra Petch', sans-serif;
-      font-size: 22px;
+      font-size: 15px;
       color: #000;
-      box-shadow: 0 0 15px var(--cyan-glow);
+      flex-shrink: 0;
     }
     .brand-title {
       font-family: 'Chakra Petch', sans-serif;
-      font-size: 22px;
+      font-size: 16px;
       font-weight: 700;
       letter-spacing: 0.5px;
-      text-transform: uppercase;
-      background: linear-gradient(90deg, #fff, var(--cyan));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #fff;
+      line-height: 1.2;
     }
     .brand-sub {
-      font-size: 12px;
+      font-size: 10px;
       color: var(--text-dim);
-    }
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .net-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: var(--green);
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 600;
-      font-family: 'Chakra Petch', sans-serif;
-    }
-    .net-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--green);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--green);
-    }
-    .wallet-chip {
-      background: #0a0f1d;
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      color: var(--cyan);
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
     }
 
-    /* Navigation Tabs */
-    nav.tab-bar {
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
       display: flex;
-      gap: 8px;
-      padding: 16px 28px 0;
-      background: #090e1a;
-      border-bottom: 1px solid var(--card-border);
-      overflow-x: auto;
+      flex-direction: column;
+      gap: 20px;
     }
-    .tab-btn {
+    .nav-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      padding: 0 10px 6px;
+    }
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nav-btn {
+      width: 100%;
       background: transparent;
       border: 0;
-      border-bottom: 3px solid transparent;
-      color: var(--text-dim);
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 10px 18px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 12px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-      white-space: nowrap;
+      gap: 10px;
+      transition: all 0.15s ease;
+      text-align: left;
     }
-    .tab-btn:hover {
+    .nav-btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      opacity: 0.7;
+      transition: opacity 0.15s ease;
+    }
+    .nav-btn:hover {
       color: #fff;
+      background: rgba(255, 255, 255, 0.04);
     }
-    .tab-btn.active {
+    .nav-btn:hover svg {
+      opacity: 1;
+    }
+    .nav-btn.active {
       color: var(--cyan);
-      border-bottom-color: var(--cyan);
-      background: rgba(0, 240, 255, 0.05);
-      border-top-left-radius: 6px;
-      border-top-right-radius: 6px;
+      background: var(--cyan-subtle);
+      font-weight: 600;
+    }
+    .nav-btn.active svg {
+      opacity: 1;
+      stroke: var(--cyan);
+    }
+    .nav-badge-pill {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--cyan);
     }
 
-    /* Main Container */
-    main {
-      padding: 28px;
-      max-width: 1440px;
-      margin: 0 auto;
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--sidebar-border);
+      background: #080c18;
     }
-    .tab-content {
+    .net-status-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .net-status-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+    .net-status-sub {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* === MAIN LAYOUT === */
+    .app-viewport {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header.top-header {
+      height: var(--header-height);
+      background: var(--header-bg);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--sidebar-border);
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .sidebar-toggle-btn {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--sidebar-border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      cursor: pointer;
+    }
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .breadcrumb-app { color: var(--text-dim); font-weight: 500; }
+    .breadcrumb-sep { color: var(--text-dim); font-size: 11px; }
+    .breadcrumb-page { color: #fff; font-weight: 600; font-family: 'Chakra Petch', sans-serif; text-transform: uppercase; }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .net-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--green-subtle);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: var(--green);
+    }
+
+    .wallet-chip {
+      background: #090e1a;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .wallet-chip:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: #0e1526;
+    }
+
+    /* Wallet Dropdown */
+    .wallet-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      width: 310px;
+      background: #0c1222;
+      border: 1px solid var(--sidebar-border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+      z-index: 100;
       display: none;
     }
-    .tab-content.active {
-      display: block;
+    .wallet-dropdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      padding: 5px 0;
     }
 
-    /* Grid & Card Utilities */
+    /* Wrong Network Banner */
+    .network-banner {
+      background: rgba(239, 68, 68, 0.12);
+      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 10px 28px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    /* Main Content Container */
+    main.content-area {
+      padding: 28px;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Page Header */
+    .page-header {
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .page-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+    .page-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* KPI Grid */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 18px;
-      margin-bottom: 28px;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
     }
     .kpi-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
+      border-radius: 10px;
       padding: 18px;
-      position: relative;
-      overflow: hidden;
+      transition: border-color 0.15s ease;
     }
-    .kpi-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, var(--cyan), transparent);
+    .kpi-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
     }
     .kpi-label {
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
       color: var(--text-dim);
       margin-bottom: 8px;
     }
     .kpi-val {
       font-family: 'Chakra Petch', sans-serif;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
       color: #fff;
+      line-height: 1.1;
     }
     .kpi-sub {
       font-size: 12px;
-      color: var(--text-dim);
+      color: var(--text-muted);
       margin-top: 6px;
     }
 
+    /* Card Panels */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 24px;
-      margin-bottom: 24px;
+      border-radius: 12px;
+      padding: 22px;
+      margin-bottom: 20px;
     }
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       padding-bottom: 12px;
-      border-bottom: 1px solid var(--card-border);
+      border-bottom: 1px solid var(--card-border-subtle);
     }
     .card-title {
       font-family: 'Chakra Petch', sans-serif;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       text-transform: uppercase;
+      color: #fff;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
+
+    /* Stepper for Settlement Architecture */
+    .stepper-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stepper-step {
+      background: #090e1c;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 16px;
+      position: relative;
+    }
+    .stepper-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .stepper-title {
+      font-family: 'Chakra Petch', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .stepper-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--card-border);
+      background: #080d1a;
+    }
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--card-border-subtle);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: 0; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'Chakra Petch', sans-serif;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .badge-success { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-warning { background: var(--amber-subtle); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-purple  { background: var(--purple-subtle); color: var(--purple); border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-cyan    { background: var(--cyan-subtle); color: var(--cyan); border: 1px solid rgba(0, 229, 255, 0.3); }
 
     /* Buttons & Inputs */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border: 0;
-      border-radius: 8px;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
       font-family: 'Chakra Petch', sans-serif;
       font-weight: 700;
-      font-size: 13px;
-      letter-spacing: 0.5px;
+      font-size: 12px;
+      letter-spacing: 0.4px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       text-transform: uppercase;
+      border: 1px solid transparent;
     }
     .btn-cyan {
       background: var(--cyan);
       color: #000;
     }
-    .btn-cyan:hover {
-      box-shadow: 0 0 15px var(--cyan-glow);
-    }
-    .btn-amber {
-      background: var(--amber);
-      color: #000;
-    }
-    .btn-amber:hover {
-      box-shadow: 0 0 15px var(--amber-glow);
-    }
+    .btn-cyan:hover { background: #33ebff; }
     .btn-outline {
       background: transparent;
-      border: 1px solid var(--card-border);
-      color: var(--text-dim);
+      border-color: var(--card-border);
+      color: var(--text-muted);
     }
     .btn-outline:hover {
-      border-color: var(--cyan);
+      border-color: rgba(255, 255, 255, 0.2);
       color: #fff;
     }
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 11px;
-    }
+    .btn-sm { padding: 6px 10px; font-size: 11px; }
+
     input, select, textarea {
-      width: 100%;
       background: #070c18;
       border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 10px 14px;
       color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
       font-family: 'Inter', sans-serif;
       font-size: 13px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s ease;
     }
     input:focus, select:focus, textarea:focus {
-      outline: none;
       border-color: var(--cyan);
-      box-shadow: 0 0 10px var(--cyan-glow);
     }
 
-    /* Tables */
-    .table-responsive {
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    th {
-      text-align: left;
-      padding: 12px 16px;
-      color: var(--text-dim);
-      font-weight: 600;
-      border-bottom: 1px solid var(--card-border);
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing: 0.5px;
-    }
-    td {
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(27, 40, 69, 0.5);
-      font-family: 'Inter', sans-serif;
-    }
-    tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
-    }
-    .digest-link {
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--cyan);
-      text-decoration: none;
-    }
-    .digest-link:hover {
-      text-decoration: underline;
-    }
-    .badge {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      font-family: 'Chakra Petch', sans-serif;
-      text-transform: uppercase;
-    }
-    .badge-success { background: rgba(16, 185, 129, 0.2); color: var(--green); }
-    .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
-    .badge-purple { background: rgba(168, 85, 247, 0.2); color: var(--purple); }
-
-    /* Proposal Cards */
-    .proposal-card {
-      background: #0a0f1f;
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-      transition: border-color 0.2s ease;
-    }
-    .proposal-card:hover {
-      border-color: rgba(0, 240, 255, 0.4);
-    }
-    .proposal-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 12px;
-    }
-    .proposal-title {
-      font-family: 'Chakra Petch', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: #fff;
-    }
-    .progress-bar-bg {
-      background: #1e293b;
-      border-radius: 999px;
-      height: 8px;
-      overflow: hidden;
-      margin: 8px 0 4px;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--cyan), var(--purple));
-      border-radius: 999px;
-    }
-    .vote-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin: 14px 0;
-      background: rgba(0, 0, 0, 0.2);
-      padding: 12px;
-      border-radius: 8px;
-    }
-
-    /* Gear Cards */
+    /* Gear Grid */
     .gear-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
     }
     .gear-card {
-      background: #0a0f1d;
+      background: #090e1c;
       border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 18px;
-      position: relative;
+      border-radius: 10px;
+      padding: 16px;
     }
-    .gear-card.rare { border-color: rgba(168, 85, 247, 0.5); }
-    .gear-card.common { border-color: var(--card-border); }
     .gear-name {
       font-family: 'Chakra Petch', sans-serif;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       margin: 8px 0;
+      color: #fff;
     }
-    .gear-stats-row {
+    .gear-row {
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+      padding: 4px 0;
+      color: var(--text-muted);
+    }
+    .gear-row strong { color: #fff; }
+
+    /* Modals & Overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 7, 17, 0.8);
+      backdrop-filter: blur(6px);
+      display: none;
+      place-items: center;
+      z-index: 200;
+      padding: 20px;
+    }
+    .modal-box {
+      background: #0d1424;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 460px;
+      padding: 24px;
+    }
+    .wallet-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: #070b16;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .wallet-item:hover {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 255, 0.04);
     }
 
     /* Toast */
@@ -415,766 +619,921 @@
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: #111827;
-      border: 1px solid var(--cyan);
-      padding: 14px 22px;
-      border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      display: none;
-      font-size: 13px;
-    }
-    /* Wallet Dropdown */
-    .wallet-dropdown {
-      position: absolute;
-      top: 100%;
-      right: 0;
-      margin-top: 10px;
-      width: 320px;
-      background: #0d1424;
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-      z-index: 200;
-    }
-    .wallet-dropdown-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      margin-bottom: 12px;
-    }
-    .wallet-dropdown-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-      padding: 6px 0;
-    }
-
-    /* Wallet Modal */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(4, 7, 17, 0.85);
-      backdrop-filter: blur(8px);
-      display: none;
-      place-items: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-    .modal-box {
       background: #0d1424;
       border: 1px solid var(--cyan);
-      box-shadow: 0 0 35px var(--cyan-glow);
-      border-radius: 16px;
-      width: 100%;
-      max-width: 480px;
-      padding: 28px;
-      position: relative;
-    }
-    .wallet-list-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      background: #080d1a;
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .wallet-list-item:hover {
-      border-color: var(--cyan);
-      background: rgba(0, 240, 255, 0.05);
-      transform: translateY(-2px);
-    }
-    .wallet-list-item-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .wallet-item-icon {
-      width: 36px;
-      height: 36px;
+      padding: 12px 20px;
       border-radius: 8px;
-      display: grid;
-      place-items: center;
-      font-size: 20px;
-      background: #131c33;
-    }
-
-    /* Wrong Network Banner */
-    .network-banner {
-      background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
-      border: 1px solid var(--red);
-      color: #fca5a5;
-      padding: 12px 24px;
-      border-radius: 10px;
-      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 300;
       display: none;
-      align-items: center;
-      justify-content: space-between;
       font-size: 13px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+    .digest-link {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    .digest-link:hover { text-decoration: underline; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      aside.app-sidebar {
+        transform: translateX(-100%);
+      }
+      aside.app-sidebar.open {
+        transform: translateX(0);
+      }
+      .app-viewport {
+        margin-left: 0;
+      }
+      .sidebar-toggle-btn {
+        display: grid;
+      }
+      .stepper-container {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header>
-    <div class="brand">
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="app-sidebar" id="app-sidebar">
+    <div class="brand-section">
       <div class="brand-logo">RR</div>
       <div>
-        <div class="brand-title">Robot Rumble &bull; Sui Protocol</div>
-        <div class="brand-sub">Production Mech-Arena Blockchain Dashboard & Governance</div>
+        <div class="brand-title">Robot Rumble</div>
+        <div class="brand-sub">Sui Analytics & DAO</div>
       </div>
     </div>
-    <div class="header-actions">
-      <div class="net-badge" id="header-net-badge">
-        <div class="net-dot" id="header-net-dot"></div>
-        <span id="header-net-label">Sui Testnet Live</span>
-      </div>
 
-      <!-- Connect Button when Disconnected -->
-      <button class="btn btn-cyan btn-sm" id="btn-connect-wallet" style="display:none;">
-        🔗 Connect Sui Wallet
-      </button>
-
-      <!-- Connected Wallet Pill with Interactive Dropdown -->
-      <div class="wallet-chip-container" id="wallet-chip-container" style="position:relative; display:none;">
-        <div class="wallet-chip" id="wallet-chip-btn" style="cursor:pointer; user-select:none;">
-          <span id="active-wallet-icon">🤖</span>
-          <span id="active-wallet-label">0xaf41...99f8</span>
-          <span id="active-wallet-sui" class="badge badge-purple" style="font-size:11px; margin-left:4px;">0.00 SUI</span>
-          <span style="font-size:10px; color:var(--text-dim); margin-left:4px;">▼</span>
-        </div>
-
-        <!-- Cyberpunk Wallet Dropdown Menu -->
-        <div id="wallet-dropdown-menu" class="wallet-dropdown" style="display:none;">
-          <div class="wallet-dropdown-header">
-            <div>
-              <div style="font-family:'Chakra Petch'; font-size:14px; font-weight:700; color:#fff;" id="dropdown-wallet-name">Sui Wallet</div>
-              <div style="font-size:11px; color:var(--text-dim);" id="dropdown-network-name">Network: Sui Testnet</div>
-            </div>
-            <span class="badge badge-success" id="dropdown-auth-badge">SIWS Verified</span>
-          </div>
-
-          <div style="margin-bottom:12px;">
-            <div style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">CONNECTED SUI ADDRESS</div>
-            <div style="display:flex; justify-content:space-between; align-items:center; background:#070b16; padding:8px 10px; border-radius:6px; border:1px solid var(--card-border);">
-              <span id="dropdown-full-address" style="font-family:'JetBrains Mono'; font-size:11px; color:var(--cyan); word-break:break-all;">0x...</span>
-              <button class="btn btn-outline btn-sm" id="btn-copy-address" style="padding:4px 8px; font-size:11px; margin-left:6px;">Copy</button>
-            </div>
-          </div>
-
-          <div style="background:#070b16; border-radius:8px; padding:10px; margin-bottom:14px; border:1px solid var(--card-border);">
-            <div class="wallet-dropdown-row">
-              <span style="color:var(--text-dim);">SUI Gas Balance</span>
-              <strong id="dropdown-sui-balance" style="color:#fff;">0.0000 SUI</strong>
-            </div>
-            <div class="wallet-dropdown-row">
-              <span style="color:var(--text-dim);">RRC In-Game Credits</span>
-              <strong id="dropdown-rrc-balance" style="color:var(--cyan);">0 RRC</strong>
-            </div>
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <a id="dropdown-explorer-link" class="btn btn-outline btn-sm" href="#" target="_blank" style="text-align:center; display:block;">
-              Explorer Address Profile ↗
-            </a>
-            <button class="btn btn-outline btn-sm" id="btn-disconnect-wallet" style="color:var(--red); border-color:var(--red); width:100%;">
-              🔌 Disconnect Wallet
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- NAVIGATION TABS -->
-  <nav class="tab-bar">
-    <button class="tab-btn active" data-tab="tab-account">👤 My Mech Account</button>
-    <button class="tab-btn" data-tab="tab-gov">🏛️ Governance & DAO</button>
-    <button class="tab-btn" data-tab="tab-settlement">🎯 Match Rewards & Settlement</button>
-    <button class="tab-btn" data-tab="tab-txs">📊 Live Transactions</button>
-    <button class="tab-btn" data-tab="tab-tokens">🪙 Tokenomics & Treasury</button>
-    <button class="tab-btn" data-tab="tab-gear">🤖 NFTs & Mech Gear</button>
-    <button class="tab-btn" data-tab="tab-battles">⚔️ Battles & Rewards</button>
-    <button class="tab-btn" data-tab="tab-upgrades">📈 Upgrades & Burns</button>
-    <button class="tab-btn" data-tab="tab-market">🛒 Marketplace</button>
-    <button class="tab-btn" data-tab="tab-sim">🎮 Simulator & Harness</button>
-  </nav>
-
-  <!-- MAIN VIEW CONTAINER -->
-  <main>
-
-    <!-- WRONG NETWORK ALERT BANNER -->
-    <div id="banner-wrong-network" class="network-banner">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <span style="font-size:20px;">⚠️</span>
-        <div>
-          <strong style="color:#fff;">Network Mismatch Detected:</strong>
-          Connected wallet is configured for <span id="wrong-network-name" style="color:var(--amber); font-weight:700;">Unknown Network</span>.
-          Robot Rumble requires <strong style="color:var(--cyan);">Sui Testnet</strong> (<code style="color:#fff;">sui:testnet</code>).
-        </div>
-      </div>
-      <button class="btn btn-outline btn-sm" id="btn-switch-network-help" style="border-color:var(--red); color:#fff;">
-        Switch to Testnet in Wallet Settings
-      </button>
-    </div>
-
-    <!-- TAB 0: MY MECH ACCOUNT -->
-    <div id="tab-account" class="tab-content active">
-      <div id="account-disconnected-view" style="display:none;">
-        <div class="card" style="text-align:center; padding:48px 24px; border-color:var(--cyan);">
-          <div style="font-size:48px; margin-bottom:16px;">🤖</div>
-          <h2 style="font-family:'Chakra Petch'; font-size:24px; color:#fff; margin-bottom:8px;">CONNECT YOUR SUI WALLET</h2>
-          <p style="font-size:14px; color:var(--text-dim); max-width:540px; margin:0 auto 24px; line-height:1.6;">
-            Connect your standard Sui Testnet wallet (Sui Wallet, Suiet, Nightly, or Dev Pilot) to inspect your personalized Mech NFTs, RRC token balances, pilot profile stats, and vote on DAO governance.
-          </p>
-          <button class="btn btn-cyan" id="btn-account-connect-trigger" style="padding:14px 32px; font-size:15px;">
-            🔗 Connect Sui Wallet
+    <div class="sidebar-scroll">
+      <div>
+        <div class="nav-group-label">Protocol & Operations</div>
+        <div class="sidebar-nav">
+          <button class="nav-btn active" data-tab="tab-overview">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <span>Overview</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-settlement">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Match Settlement</span>
+            <span class="nav-badge-pill">Live</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-gov">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+            <span>Governance & DAO</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-tokens">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Tokenomics</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-txs">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Transactions</span>
           </button>
         </div>
       </div>
 
-      <div id="account-connected-view">
+      <div>
+        <div class="nav-group-label">Game Assets & Combat</div>
+        <div class="sidebar-nav">
+          <button class="nav-btn" data-tab="tab-account">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>My Mech Pilot</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-gear">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Mech NFTs</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-battles">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Arena Battles</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-upgrades">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+            <span>Gear Upgrades</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-market">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+            <span>Marketplace</span>
+          </button>
+          <button class="nav-btn" data-tab="tab-sim">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Game Simulator</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="net-status-box">
+        <div class="net-status-header">
+          <div class="status-dot"></div>
+          <span>Sui Testnet Live</span>
+        </div>
+        <div class="net-status-sub">Contract v3 Active &bull; Healthy</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEWPORT -->
+  <div class="app-viewport">
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle-btn" id="btn-sidebar-toggle">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="breadcrumbs">
+          <span class="breadcrumb-app">Robot Rumble</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-page" id="header-page-title">Overview</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="net-pill" id="header-net-badge">
+          <div class="status-dot"></div>
+          <span id="header-net-label">Sui Testnet</span>
+        </div>
+
+        <!-- Disconnected Connect Button -->
+        <button class="btn btn-cyan btn-sm" id="btn-connect-wallet">
+          Connect Wallet
+        </button>
+
+        <!-- Connected Wallet Chip & Dropdown -->
+        <div class="wallet-chip-container" id="wallet-chip-container" style="position:relative; display:none;">
+          <div class="wallet-chip" id="wallet-chip-btn">
+            <span id="active-wallet-icon">🤖</span>
+            <span id="active-wallet-label">0x...</span>
+            <span id="active-wallet-sui" class="badge badge-purple" style="font-size:10px;">0.00 SUI</span>
+            <span style="font-size:10px; color:var(--text-dim);">▼</span>
+          </div>
+
+          <div id="wallet-dropdown-menu" class="wallet-dropdown">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--card-border-subtle);">
+              <div>
+                <div style="font-size:13px; font-weight:700; color:#fff;" id="dropdown-wallet-name">Sui Wallet</div>
+                <div style="font-size:11px; color:var(--text-dim);" id="dropdown-network-name">Network: Sui Testnet</div>
+              </div>
+              <span class="badge badge-success" id="dropdown-auth-badge" style="font-size:9px;">SIWS Verified</span>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Address</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; background:#070b16; padding:6px 8px; border-radius:6px; border:1px solid var(--card-border);">
+                <span id="dropdown-full-address" style="font-family:'JetBrains Mono'; font-size:11px; color:var(--cyan); word-break:break-all;">0x...</span>
+                <button class="btn btn-outline btn-sm" id="btn-copy-address" style="padding:2px 6px; font-size:10px; margin-left:6px;">Copy</button>
+              </div>
+            </div>
+
+            <div style="background:#070b16; border-radius:8px; padding:8px 10px; margin-bottom:10px; border:1px solid var(--card-border);">
+              <div class="wallet-dropdown-row">
+                <span style="color:var(--text-dim);">SUI Gas</span>
+                <strong id="dropdown-sui-balance" style="color:#fff;">0.0000 SUI</strong>
+              </div>
+              <div class="wallet-dropdown-row">
+                <span style="color:var(--text-dim);">RRC Balance</span>
+                <strong id="dropdown-rrc-balance" style="color:var(--cyan);">0 RRC</strong>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <a id="dropdown-explorer-link" class="btn btn-outline btn-sm" href="#" target="_blank" style="text-align:center; display:block;">
+                Explorer Profile ↗
+              </a>
+              <button class="btn btn-outline btn-sm" id="btn-disconnect-wallet" style="color:var(--red); border-color:var(--red);">
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- WRONG NETWORK BANNER -->
+    <div id="banner-wrong-network" class="network-banner">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span>⚠️</span>
+        <div>
+          <strong>Network Mismatch:</strong> Connected wallet is on <span id="wrong-network-name" style="font-weight:700;">Unknown Network</span>. Robot Rumble requires <strong>Sui Testnet</strong> (<code>sui:testnet</code>).
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" id="btn-switch-network-help" style="border-color:var(--red); color:#fff;">
+        Switch to Testnet in Wallet
+      </button>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="content-area">
+
+      <!-- ============================================== -->
+      <!-- TAB 1: OVERVIEW PAGE                           -->
+      <!-- ============================================== -->
+      <div id="tab-overview" class="tab-content active">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Executive Protocol Overview</div>
+            <div class="page-desc">High-level telemetry across combat settlement, tokenomics, governance, and Sui Testnet infrastructure.</div>
+          </div>
+        </div>
+
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-label">Connected Pilot</div>
-            <div class="kpi-val" id="acc-kpi-address" style="font-size:20px; font-family:'JetBrains Mono';">0x...</div>
-            <div class="kpi-sub" id="acc-kpi-auth-status">SIWS Verified Session</div>
+            <div class="kpi-label">Circulating RRC</div>
+            <div class="kpi-val" id="ov-kpi-circulating">-- RRC</div>
+            <div class="kpi-sub">Total Player & Vault Balance</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">SUI Gas Balance</div>
-            <div class="kpi-val" id="acc-kpi-sui" style="color:var(--cyan);">0.0000 SUI</div>
-            <div class="kpi-sub">Sui Testnet Native Coin</div>
+            <div class="kpi-label">Cumulative Minted</div>
+            <div class="kpi-val" id="ov-kpi-minted" style="color:var(--cyan);">-- RRC</div>
+            <div class="kpi-sub">Combat Rewards Issued</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">RRC Token Balance</div>
-            <div class="kpi-val" id="acc-kpi-rrc" style="color:var(--purple);">0 RRC</div>
-            <div class="kpi-sub">Robot Credits In-Game Token</div>
+            <div class="kpi-label">Cumulative Burned</div>
+            <div class="kpi-val" id="ov-kpi-burned" style="color:var(--purple);">-- RRC</div>
+            <div class="kpi-sub">Gear Upgrades Sunk</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Owned Mech NFTs</div>
-            <div class="kpi-val" id="acc-kpi-gear-count">0</div>
-            <div class="kpi-sub">On-Chain Combat Gear</div>
+            <div class="kpi-label">Matches Settled</div>
+            <div class="kpi-val" id="ov-kpi-matches" style="color:var(--green);">--</div>
+            <div class="kpi-sub">Atomic Batched Settlements</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">DAO Proposals</div>
+            <div class="kpi-val" id="ov-kpi-proposals">--</div>
+            <div class="kpi-sub">On-Chain Parameter Proposals</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Network Status</div>
+            <div class="kpi-val" style="color:var(--green); font-size:20px; display:flex; align-items:center; gap:8px;">
+              <div class="status-dot"></div> Active
+            </div>
+            <div class="kpi-sub">Sui Testnet &bull; Latency &lt;650ms</div>
           </div>
         </div>
 
-        <!-- Pilot Profile Card -->
+        <!-- Infrastructure & Security Registry -->
         <div class="card">
           <div class="card-header">
-            <div class="card-title">🪪 On-Chain Player Profile</div>
-            <div id="acc-profile-badge" class="badge badge-warning">Checking Profile...</div>
+            <div class="card-title">Verified Sui Testnet Infrastructure</div>
+            <span class="badge badge-success">Move Package v3 Deployed</span>
           </div>
-          <div id="acc-profile-details" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:16px;">
-            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
-              <div style="font-size:11px; color:var(--text-dim);">LEVEL</div>
-              <div id="acc-prof-level" style="font-size:22px; font-weight:700; color:var(--cyan);">1</div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+              <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Core Move Package</div>
+              <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0x54fb4b...de4</div>
+              <a class="digest-link" href="https://suiscan.xyz/testnet/object/0x54fb4b210eb3f153f41e1e9b1b898beeea3c209005f0d9874b3b52349ecb8de4" target="_blank">View on Suiscan ↗</a>
             </div>
-            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
-              <div style="font-size:11px; color:var(--text-dim);">EXPERIENCE (XP)</div>
-              <div id="acc-prof-xp" style="font-size:22px; font-weight:700; color:#fff;">0 XP</div>
+            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+              <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Shared Settlement Registry</div>
+              <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0xc91538...143a</div>
+              <a class="digest-link" href="https://suiscan.xyz/testnet/object/0xc91538b526d4b81de448a0c0f9aad47b13feee364bc225696ecebd0947d9143a" target="_blank">View on Suiscan ↗</a>
             </div>
-            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
-              <div style="font-size:11px; color:var(--text-dim);">VICTORIES</div>
-              <div id="acc-prof-wins" style="font-size:22px; font-weight:700; color:var(--green);">0</div>
+            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+              <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Treasury Vault (RRC Pool)</div>
+              <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0x4ee9a3...e19b</div>
+              <a class="digest-link" href="https://suiscan.xyz/testnet/object/0x4ee9a3d4f19b260f85eb3bf2003c40f5a7a726eaee2246c05a06ce066928e19b" target="_blank">View on Suiscan ↗</a>
             </div>
-            <div style="background:#090e1a; padding:12px; border-radius:8px; border:1px solid var(--card-border);">
-              <div style="font-size:11px; color:var(--text-dim);">DEFEATS</div>
-              <div id="acc-prof-losses" style="font-size:22px; font-weight:700; color:var(--red);">0</div>
+            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+              <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Governed Parameters Config</div>
+              <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0x42fcf5...7664</div>
+              <a class="digest-link" href="https://suiscan.xyz/testnet/object/0x42fcf55651c68f182c61aa7aa35c91f16548a80d5bfa7bc6fcfa48c26c367664" target="_blank">View on Suiscan ↗</a>
             </div>
-          </div>
-          <div id="acc-profile-action">
-            <button class="btn btn-cyan btn-sm" id="btn-acc-init-profile">⚡ Initialize On-Chain Player Profile (Sign with Wallet)</button>
           </div>
         </div>
 
-        <!-- Owned Mech Gear Loadout -->
+        <!-- Recent Activity Feed -->
         <div class="card">
           <div class="card-header">
-            <div class="card-title">🤖 My Owned Mech Gear & Weapons</div>
-            <button class="btn btn-outline btn-sm" id="btn-acc-refresh-gear">🔄 Refresh Gear</button>
+            <div class="card-title">Latest On-Chain Transactions</div>
+            <button class="btn btn-outline btn-sm" id="btn-refresh-overview">Refresh Feed</button>
           </div>
-          <div id="acc-gear-grid" class="gear-grid">
-            <div class="empty-state">Loading owned mech gear...</div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Transaction Digest</th>
+                  <th>Checkpoint</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="overview-txs-body">
+                <tr><td colspan="5" class="empty-state">Loading latest transactions...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: MATCH REWARDS & SETTLEMENT              -->
+      <!-- ============================================== -->
+      <div id="tab-settlement" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Match Rewards & Batched Settlement</div>
+            <div class="page-desc">High-frequency off-chain combat scoring committed in single atomic Move transactions on Sui Testnet.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-matches">Refresh Data</button>
+        </div>
+
+        <!-- Summary Metrics -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Measured Settlement Gas</div>
+            <div class="kpi-val" style="color:var(--cyan);">0.00388 SUI</div>
+            <div class="kpi-sub">Exact Net Fee Measured on Sui</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Batched Gas Savings</div>
+            <div class="kpi-val" style="color:var(--green);">&gt; 96%</div>
+            <div class="kpi-sub">1 Settle Tx vs ~40 Per-Event Txs</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Matches Processed</div>
+            <div class="kpi-val" id="settle-kpi-matches">1</div>
+            <div class="kpi-sub">Idempotent Lifecycle</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Safety Budget Cap</div>
+            <div class="kpi-val">1,000 RRC</div>
+            <div class="kpi-sub">Max Reward Per Match</div>
           </div>
         </div>
 
-        <!-- Match Reward History for This Wallet -->
+        <!-- 3-Stage Process Stepper -->
+        <div class="stepper-container">
+          <div class="stepper-step">
+            <div class="stepper-num">STAGE 01</div>
+            <div class="stepper-title">Off-Chain Gameplay Scoring</div>
+            <div class="stepper-desc">Combat actions (Headshots, Kills, Assists, Objectives) are recorded in-memory with 0 gas cost and zero gameplay latency.</div>
+          </div>
+          <div class="stepper-step">
+            <div class="stepper-num">STAGE 02</div>
+            <div class="stepper-title">Server Validation & Dedup</div>
+            <div class="stepper-desc">Trusted sidecar verifies event sequences, enforces replay deduplication, and computes deterministic reward distribution plans.</div>
+          </div>
+          <div class="stepper-step">
+            <div class="stepper-num">STAGE 03</div>
+            <div class="stepper-title">Single Batched Settlement</div>
+            <div class="stepper-desc">A single atomic Move call (<code>settle_match_batch</code>) checks on-chain idempotency and distributes RRC rewards to all players.</div>
+          </div>
+        </div>
+
+        <!-- Independent Match Test Harness -->
         <div class="card">
           <div class="card-header">
-            <div class="card-title">🏆 Match Rewards & Settlement History</div>
+            <div class="card-title">
+              <span>Interactive Match Scoring Test Harness</span>
+              <span class="badge badge-purple" style="font-size:10px;">Standalone Test Environment</span>
+            </div>
           </div>
-          <div class="table-wrap">
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <!-- Left Side: Controls -->
+            <div style="display:flex; flex-direction:column; gap:16px;">
+              <!-- Stage 1 -->
+              <div>
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-dim); margin-bottom:6px;">Stage 1: Match Setup</div>
+                <div style="display:flex; gap:8px;">
+                  <input type="text" id="harness-match-title" value="Mech Elimination Tournament #9003" placeholder="Match Title" style="flex:2;">
+                  <select id="harness-game-mode" style="flex:1;">
+                    <option value="3v3 Elimination">3v3 Elimination</option>
+                    <option value="Deathmatch">Deathmatch</option>
+                    <option value="Objective Control">Objective Control</option>
+                  </select>
+                  <button class="btn btn-cyan btn-sm" id="btn-harness-create-match">+ Create</button>
+                </div>
+              </div>
+
+              <!-- Stage 2 -->
+              <div>
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-dim); margin-bottom:6px;">Stage 2: Stream Combat Events (0 Gas)</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                  <button class="btn btn-outline btn-sm" id="btn-fire-headshot">🎯 Headshot (+25 pts)</button>
+                  <button class="btn btn-outline btn-sm" id="btn-fire-kill">💥 Kill (+50 pts)</button>
+                  <button class="btn btn-outline btn-sm" id="btn-fire-assist">🤝 Assist (+15 pts)</button>
+                  <button class="btn btn-outline btn-sm" id="btn-fire-obj">🚩 Objective (+100 pts)</button>
+                  <button class="btn btn-outline btn-sm" id="btn-fire-dup" style="border-color:rgba(245, 158, 11, 0.4); color:var(--amber);">⚠️ Duplicate Event Test</button>
+                </div>
+              </div>
+
+              <!-- Stage 4 -->
+              <div>
+                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-dim); margin-bottom:6px;">Stage 4: Settlement Execution</div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-outline btn-sm" id="btn-harness-end-match">🏁 End Match & Plan</button>
+                  <button class="btn btn-cyan btn-sm" id="btn-harness-settle">⚡ Settle on Sui Testnet</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Telemetry -->
+            <div style="background:#080d1a; border:1px solid var(--card-border); border-radius:8px; padding:16px; display:flex; flex-direction:column; justify-content:space-between;">
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-dim);">Live Telemetry</span>
+                  <span id="harness-match-status-badge" class="badge badge-success">IN_PROGRESS</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+                  <div>Match ID: <strong id="harness-live-match-id" style="color:var(--cyan);">-</strong></div>
+                  <div>Score: <strong id="harness-live-score" style="color:#fff;">0 pts</strong> &bull; Events: <strong id="harness-live-event-count">0</strong></div>
+                </div>
+                <div style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">Event Stream:</div>
+                <div id="harness-event-log" style="height:110px; overflow-y:auto; background:#040711; border:1px solid var(--card-border); border-radius:6px; padding:8px; font-family:'JetBrains Mono', monospace; font-size:11px; color:#cbd5e1;">
+                  <em>No events recorded yet. Click combat action buttons to stream events.</em>
+                </div>
+              </div>
+              <div id="harness-settle-result" style="margin-top:10px; font-size:12px; display:none; background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); padding:8px 12px; border-radius:6px;">
+                <!-- Dynamic result -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Matches Registry Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Match Settlement Audit Trail</div>
+          </div>
+          <div class="table-container">
             <table>
               <thead>
                 <tr>
                   <th>Match ID</th>
                   <th>Title / Mode</th>
                   <th>Status</th>
-                  <th>My Score</th>
-                  <th>RRC Rewarded</th>
-                  <th>Settlement Transaction</th>
+                  <th>Score (Off-Chain)</th>
+                  <th>Payout (RRC)</th>
+                  <th>Sui Settlement Tx</th>
+                  <th>Gas Efficiency</th>
                 </tr>
               </thead>
-              <tbody id="acc-matches-table-body">
-                <tr><td colspan="6" class="empty-state">No matches found for this wallet.</td></tr>
+              <tbody id="matches-table-body">
+                <tr><td colspan="7" class="empty-state">Loading match registry...</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- TAB 1: GOVERNANCE & DAO -->
-    <div id="tab-gov" class="tab-content">
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">Active Proposals</div>
-          <div class="kpi-val" id="gov-kpi-proposals">1</div>
-          <div class="kpi-sub">On-Chain Governed</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Victory Reward</div>
-          <div class="kpi-val" id="gov-kpi-reward">50 RRC</div>
-          <div class="kpi-sub">Governed Parameter #1</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Quorum Requirement</div>
-          <div class="kpi-val">20.0%</div>
-          <div class="kpi-sub">200 of 1000 Denominator</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Approval Threshold</div>
-          <div class="kpi-val">&gt; 51.0%</div>
-          <div class="kpi-sub">Non-Abstaining Majority</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🏛️ On-Chain Governance Proposals</div>
+      <!-- ============================================== -->
+      <!-- TAB 3: GOVERNANCE & DAO                        -->
+      <!-- ============================================== -->
+      <div id="tab-gov" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">On-Chain Governance & DAO</div>
+            <div class="page-desc">Propose, vote, and timelock-execute game balance parameters on Sui Testnet.</div>
+          </div>
           <button class="btn btn-cyan btn-sm" id="btn-open-create-prop">+ Propose Parameter Change</button>
         </div>
 
-        <div id="proposals-list">
-          <div class="empty-state">Loading on-chain proposals...</div>
-        </div>
-      </div>
-
-      <!-- CREATE PROPOSAL MODAL / FORM -->
-      <div class="card" id="card-create-prop" style="display:none; border-color: var(--cyan);">
-        <div class="card-header">
-          <div class="card-title">Create On-Chain Governance Proposal</div>
-          <button class="btn btn-outline btn-sm" id="btn-close-create-prop">&times; Cancel</button>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <div>
-            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Proposal Title</label>
-            <input type="text" id="prop-input-title" placeholder="e.g. RRP-2: Adjust Base Upgrade Cost">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Active Proposals</div>
+            <div class="kpi-val" id="gov-kpi-proposals">1</div>
+            <div class="kpi-sub">On-Chain Governed</div>
           </div>
-          <div>
-            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Allowlisted Governed Parameter</label>
-            <select id="prop-input-param">
-              <option value="1">PARAM 1: Victory Reward (10 - 500 RRC)</option>
-              <option value="2">PARAM 2: Base Upgrade Cost (1 - 100 RRC)</option>
-              <option value="3">PARAM 3: Max Gear Level (5 - 50)</option>
-              <option value="4">PARAM 4: Marketplace Fee (0 - 1000 BPS)</option>
-            </select>
+          <div class="kpi-card">
+            <div class="kpi-label">Victory Reward</div>
+            <div class="kpi-val" id="gov-kpi-reward">50 RRC</div>
+            <div class="kpi-sub">Governed Parameter #1</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Quorum Requirement</div>
+            <div class="kpi-val">20.0%</div>
+            <div class="kpi-sub">200 of 1000 Denominator</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Approval Threshold</div>
+            <div class="kpi-val">&gt; 51.0%</div>
+            <div class="kpi-sub">Participating Majority</div>
           </div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-          <div>
-            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Target Value</label>
-            <input type="number" id="prop-input-val" placeholder="e.g. 15">
+
+        <!-- CREATE PROPOSAL MODAL / FORM -->
+        <div class="card" id="card-create-prop" style="display:none; border-color: var(--cyan);">
+          <div class="card-header">
+            <div class="card-title">Create Governance Proposal</div>
+            <button class="btn btn-outline btn-sm" id="btn-close-create-prop">&times; Cancel</button>
           </div>
-          <div>
-            <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Total Eligible Voting Power (Snapshot)</label>
-            <input type="number" id="prop-input-power" value="1000">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Title</label>
+              <input type="text" id="prop-input-title" placeholder="e.g. RRP-2: Adjust Base Upgrade Cost">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Allowlisted Governed Parameter</label>
+              <select id="prop-input-param">
+                <option value="1">PARAM 1: Victory Reward (10 - 500 RRC)</option>
+                <option value="2">PARAM 2: Base Upgrade Cost (1 - 100 RRC)</option>
+                <option value="3">PARAM 3: Max Gear Level (5 - 50)</option>
+                <option value="4">PARAM 4: Marketplace Fee (0 - 1000 BPS)</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <div>
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Target Value</label>
+              <input type="number" id="prop-input-val" placeholder="e.g. 15">
+            </div>
+            <div>
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Total Snapshot Power</label>
+              <input type="number" id="prop-input-power" value="1000">
+            </div>
+          </div>
+          <div style="margin-bottom: 14px;">
+            <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Description</label>
+            <textarea id="prop-input-desc" rows="2" placeholder="Explain the rationale for this proposed change..."></textarea>
+          </div>
+          <button class="btn btn-cyan" id="btn-submit-proposal">Submit to Sui Testnet</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Proposals Registry</div>
+          </div>
+          <div id="proposals-list">
+            <div class="empty-state">Loading governance proposals...</div>
           </div>
         </div>
-        <div style="margin-bottom: 16px;">
-          <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:6px;">Description & Justification</label>
-          <textarea id="prop-input-desc" rows="3" placeholder="Explain the rationale and balance implications of this proposed parameter change..."></textarea>
-        </div>
-        <button class="btn btn-cyan" id="btn-submit-proposal">Submit Proposal to Sui Testnet</button>
       </div>
-    </div>
 
-    <!-- TAB 2: LIVE TRANSACTIONS -->
-    <div id="tab-txs" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">📊 Confirmed Sui Testnet Transactions</div>
-          <button class="btn btn-outline btn-sm" id="btn-refresh-txs">🔄 Refresh Feed</button>
+      <!-- ============================================== -->
+      <!-- TAB 4: TOKENOMICS & TREASURY                   -->
+      <!-- ============================================== -->
+      <div id="tab-tokens" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Tokenomics & Treasury Vault</div>
+            <div class="page-desc">Real-time supply, burn metrics, and treasury vault status on Sui Testnet.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-treasury">Refresh</button>
         </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Digest</th>
-                <th>Checkpoint</th>
-                <th>Status</th>
-                <th>Timestamp</th>
-                <th>Sender</th>
-                <th>Explorer</th>
-              </tr>
-            </thead>
-            <tbody id="txs-table-body">
-              <tr><td colspan="6" class="empty-state">Loading transactions from Sui Testnet...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
-    <!-- TAB 3: TOKENOMICS & TREASURY -->
-    <div id="tab-tokens" class="tab-content">
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">Circulating Supply</div>
-          <div class="kpi-val" style="color:var(--amber);" id="token-kpi-circulating">60 RRC</div>
-          <div class="kpi-sub">Total Active Coins on Ledger</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Cumulative Minted</div>
-          <div class="kpi-val" style="color:var(--green);" id="token-kpi-minted">100 RRC</div>
-          <div class="kpi-sub">Combat Match Rewards</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Cumulative Burned</div>
-          <div class="kpi-val" style="color:var(--red);" id="token-kpi-burned">40 RRC</div>
-          <div class="kpi-sub">Burned via Gear Upgrades</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Treasury Vault</div>
-          <div class="kpi-val" style="font-size:18px;">Shared Object</div>
-          <div class="kpi-sub" id="token-vault-id">0x1e7e...04ba</div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Current Supply</div>
+            <div class="kpi-val" id="token-kpi-circulating">-- RRC</div>
+            <div class="kpi-sub">Total Minted - Total Burned</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Minted</div>
+            <div class="kpi-val" id="token-kpi-minted" style="color:var(--cyan);">-- RRC</div>
+            <div class="kpi-sub">Combat Rewards & Faucets</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Burned</div>
+            <div class="kpi-val" id="token-kpi-burned" style="color:var(--purple);">-- RRC</div>
+            <div class="kpi-sub">Deflationary Gear Upgrades</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Vault Shared Object</div>
+            <div class="kpi-val" id="token-vault-id" style="font-size:18px; font-family:'JetBrains Mono';">--</div>
+            <div class="kpi-sub"><a id="link-treasury-obj" class="digest-link" href="#" target="_blank">View on Suiscan ↗</a></div>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🪙 Tokenomics Architecture (RRC)</div>
+      <!-- ============================================== -->
+      <!-- TAB 5: LIVE TRANSACTIONS                       -->
+      <!-- ============================================== -->
+      <div id="tab-txs" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Live Transactions</div>
+            <div class="page-desc">Immutable real-time audit trail of all transactions on Sui Testnet.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-txs">Refresh</button>
         </div>
-        <div style="font-size:14px; line-height: 1.7; color: var(--text-dim);">
-          <p><strong style="color:#fff;">Token Standard:</strong> Native Sui Coin (<code>robot_rumble::credits::CREDITS</code>)</p>
-          <p><strong style="color:#fff;">Decimals:</strong> 0 (discrete game utility currency)</p>
-          <p><strong style="color:#fff;">Mint Mechanism:</strong> Governed battle reward distribution triggered exclusively by verified game authority.</p>
-          <p><strong style="color:#fff;">Deflationary Burn:</strong> Upgrading weapon damage and stats permanently consumes and burns RRC tokens back into the shared treasury vault.</p>
-          <p style="margin-top:12px;"><a class="digest-link" id="link-treasury-obj" target="_blank" href="#">View Shared Treasury Vault on Suiscan ↗</a></p>
+
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Transaction Digest</th>
+                  <th>Checkpoint</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                  <th>Sender</th>
+                  <th>Explorer Link</th>
+                </tr>
+              </thead>
+              <tbody id="txs-table-body">
+                <tr><td colspan="6" class="empty-state">Loading transactions...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- TAB 4: NFTS & MECH GEAR -->
-    <div id="tab-gear" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🤖 Owned Mech Gear & Avatar NFTs</div>
-          <button class="btn btn-outline btn-sm" id="btn-refresh-gear">🔄 Refresh Ledger</button>
+      <!-- ============================================== -->
+      <!-- TAB 6: MY MECH PILOT ACCOUNT                   -->
+      <!-- ============================================== -->
+      <div id="tab-account" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Pilot Identity & Inventory</div>
+            <div class="page-desc">Personalized account status loaded directly from on-chain Sui Testnet state.</div>
+          </div>
+        </div>
+
+        <div id="account-disconnected-view" style="display:none;">
+          <div class="card" style="text-align:center; padding:40px 20px;">
+            <div style="font-size:36px; margin-bottom:12px;">🤖</div>
+            <h3 style="font-family:'Chakra Petch'; margin-bottom:6px;">Connect Sui Wallet</h3>
+            <p style="font-size:13px; color:var(--text-muted); max-width:440px; margin:0 auto 16px;">
+              Connect your wallet to inspect your owned Mech weapon NFTs, level stats, and match reward history.
+            </p>
+            <button class="btn btn-cyan" id="btn-account-connect-trigger">Connect Wallet</button>
+          </div>
+        </div>
+
+        <div id="account-connected-view">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Connected Pilot</div>
+              <div class="kpi-val" id="acc-kpi-address" style="font-size:18px; font-family:'JetBrains Mono';">0x...</div>
+              <div class="kpi-sub" id="acc-kpi-auth-status">SIWS Verified Session</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">SUI Gas Balance</div>
+              <div class="kpi-val" id="acc-kpi-sui" style="color:var(--cyan);">0.00 SUI</div>
+              <div class="kpi-sub">Sui Testnet Native Coin</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">RRC Token Balance</div>
+              <div class="kpi-val" id="acc-kpi-rrc" style="color:var(--purple);">0 RRC</div>
+              <div class="kpi-sub">In-Game Robot Credits</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Owned Mech NFTs</div>
+              <div class="kpi-val" id="acc-kpi-gear-count">0</div>
+              <div class="kpi-sub">Weapons & Armor Objects</div>
+            </div>
+          </div>
+
+          <!-- Pilot Profile -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">On-Chain Player Profile</div>
+              <div id="acc-profile-badge" class="badge badge-warning">Checking...</div>
+            </div>
+            <div id="acc-profile-details" style="display:none; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:14px;">
+              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+                <div style="font-size:10px; color:var(--text-dim);">LEVEL</div>
+                <div id="acc-prof-level" style="font-size:18px; font-weight:700; color:var(--cyan);">1</div>
+              </div>
+              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+                <div style="font-size:10px; color:var(--text-dim);">EXPERIENCE</div>
+                <div id="acc-prof-xp" style="font-size:18px; font-weight:700; color:#fff;">0 XP</div>
+              </div>
+              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+                <div style="font-size:10px; color:var(--text-dim);">VICTORIES</div>
+                <div id="acc-prof-wins" style="font-size:18px; font-weight:700; color:var(--green);">0</div>
+              </div>
+              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+                <div style="font-size:10px; color:var(--text-dim);">DEFEATS</div>
+                <div id="acc-prof-losses" style="font-size:18px; font-weight:700; color:var(--red);">0</div>
+              </div>
+            </div>
+            <div id="acc-profile-action">
+              <button class="btn btn-cyan btn-sm" id="btn-acc-init-profile">⚡ Initialize Player Profile</button>
+            </div>
+          </div>
+
+          <!-- Gear Grid -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Owned Combat Gear</div>
+              <button class="btn btn-outline btn-sm" id="btn-acc-refresh-gear">Refresh</button>
+            </div>
+            <div id="acc-gear-grid" class="gear-grid">
+              <div class="empty-state">Loading gear...</div>
+            </div>
+          </div>
+
+          <!-- Match Rewards History -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">My Settled Match Rewards</div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Match ID</th>
+                    <th>Mode</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th>Payout (RRC)</th>
+                    <th>Settlement Tx</th>
+                  </tr>
+                </thead>
+                <tbody id="acc-matches-table-body">
+                  <tr><td colspan="6" class="empty-state">No matches found for this wallet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 7: MECH NFTS & GEAR                        -->
+      <!-- ============================================== -->
+      <div id="tab-gear" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Mech NFTs & Combat Gear</div>
+            <div class="page-desc">All on-chain gear assets owned by the active pilot address.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-gear">Refresh</button>
         </div>
         <div id="gear-grid-container" class="gear-grid">
-          <div class="empty-state">Loading on-chain NFTs...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 5: BATTLES & REWARDS -->
-    <div id="tab-battles" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">⚔️ Verified Battle Records</div>
-          <button class="btn btn-outline btn-sm" id="btn-refresh-battles">🔄 Refresh Battles</button>
-        </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Battle ID</th>
-                <th>Player</th>
-                <th>Result</th>
-                <th>Enemies Killed</th>
-                <th>XP Gained</th>
-                <th>Tx Digest</th>
-              </tr>
-            </thead>
-            <tbody id="battles-table-body">
-              <tr><td colspan="6" class="empty-state">No battle records loaded yet.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 6: UPGRADES & BURNS -->
-    <div id="tab-upgrades" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">📈 Upgrade History & Token Burn Ledger</div>
-          <button class="btn btn-outline btn-sm" id="btn-refresh-upgrades">🔄 Refresh Upgrades</button>
-        </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Gear ID</th>
-                <th>Kind</th>
-                <th>New Level</th>
-                <th>New Stat</th>
-                <th>Burned RRC</th>
-                <th>Transaction</th>
-              </tr>
-            </thead>
-            <tbody id="upgrades-table-body">
-              <tr><td colspan="6" class="empty-state">Loading upgrade logs...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 7: MARKETPLACE -->
-    <div id="tab-market" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🛒 Marketplace Activity & Royalties</div>
-          <button class="btn btn-outline btn-sm" id="btn-refresh-market">🔄 Refresh Market</button>
-        </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Weapon ID</th>
-                <th>Seller</th>
-                <th>Buyer</th>
-                <th>Price (RRC)</th>
-                <th>Transaction</th>
-              </tr>
-            </thead>
-            <tbody id="market-table-body">
-              <tr><td colspan="6" class="empty-state">Loading marketplace events...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 8: SIMULATOR & TEST HARNESS -->
-    <div id="tab-sim" class="tab-content">
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">🎮 Simulate Match Victory</div>
-          </div>
-          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">
-            Simulates winning an arena combat match in Unreal Engine 5. Authorized backend executes on-chain VRF minting, awarding a unique Mech NFT and 50 RRC tokens.
-          </p>
-          <button class="btn btn-amber" id="btn-sim-victory" style="width:100%; padding:14px;">
-            ⚔️ Simulate Match Victory (+50 RRC & Gear Mint)
-          </button>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">👤 Create Player Profile</div>
-          </div>
-          <p style="font-size:13px; color:var(--text-dim); margin-bottom:16px;">
-            Initializes an on-chain PlayerProfile object tracking wins, losses, XP, and rank level for the active wallet address.
-          </p>
-          <button class="btn btn-cyan" id="btn-create-profile" style="width:100%; padding:14px;">
-            ⚡ Initialize Player Profile
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB: MATCH REWARDS & BATCHED SETTLEMENT -->
-    <div id="tab-settlement" class="tab-content">
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">Batched Gas Savings</div>
-          <div class="kpi-val" style="color:var(--green);">&gt; 96%</div>
-          <div class="kpi-sub">1 Settle Tx vs ~40 Per-Event Txs</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Measured Settle Gas</div>
-          <div class="kpi-val" style="color:var(--cyan);">0.00388 SUI</div>
-          <div class="kpi-sub">Sui Testnet Confirmed</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Per-Match Reward Cap</div>
-          <div class="kpi-val">1,000 RRC</div>
-          <div class="kpi-sub">Enforced on Move Contract</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Total Matches</div>
-          <div class="kpi-val" id="settle-kpi-matches">1</div>
-          <div class="kpi-sub">Idempotent Lifecycle</div>
+          <div class="empty-state">Loading gear...</div>
         </div>
       </div>
 
-      <!-- Economic Architecture Concept Banner -->
-      <div class="card" style="background:rgba(0, 240, 255, 0.03); border-color:rgba(0, 240, 255, 0.25);">
-        <div style="display:flex; gap:16px; align-items:flex-start;">
-          <div style="font-size:32px; line-height:1;">🛡️</div>
+      <!-- ============================================== -->
+      <!-- TAB 8: ARENA BATTLES                           -->
+      <!-- ============================================== -->
+      <div id="tab-battles" class="tab-content">
+        <div class="page-header">
           <div>
-            <div style="font-family:'Chakra Petch', sans-serif; font-size:16px; font-weight:700; color:var(--cyan); margin-bottom:6px;">
-              Three Distinct Economic Layers Architecture
-            </div>
-            <div style="font-size:13px; color:var(--text-dim); line-height:1.6;">
-              <strong style="color:#fff;">1. Gameplay Points (Off-Chain):</strong> Headshots (+25), Kills (+50), Assists (+15), and Objectives (+100) are recorded off-chain by the trusted game server. No individual Sui transactions are minted during combat.<br/>
-              <strong style="color:#fff;">2. Match Stakes (Isolated Test Mode):</strong> Staking commitments remain isolated from scoring and rewards pending formal governance approval.<br/>
-              <strong style="color:#fff;">3. RRC Blockchain Rewards (Batched Settlement):</strong> Post-match, the server submits a single batched transaction (<code style="color:var(--cyan);">settlement::settle_match_batch</code>) distributing approved RRC base units to players' wallets.
-            </div>
+            <div class="page-title">Arena Battle History</div>
+            <div class="page-desc">Combat battles confirmed on-chain on Sui Testnet.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-battles">Refresh</button>
+        </div>
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Battle ID</th>
+                  <th>Player</th>
+                  <th>Outcome</th>
+                  <th>Enemies Killed</th>
+                  <th>XP Gained</th>
+                  <th>Tx Digest</th>
+                </tr>
+              </thead>
+              <tbody id="battles-table-body">
+                <tr><td colspan="6" class="empty-state">Loading battles...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <!-- Interactive Independent Test Harness -->
-      <div class="card" style="border-color:var(--cyan);">
-        <div class="card-header">
-          <div class="card-title">🎮 Independent Match Scoring & Batched Settlement Test Harness</div>
-          <span class="badge badge-purple">Standalone &bull; No Unreal Engine Required</span>
+      <!-- ============================================== -->
+      <!-- TAB 9: GEAR UPGRADES & BURNS                   -->
+      <!-- ============================================== -->
+      <div id="tab-upgrades" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Gear Upgrades & Deflationary Burns</div>
+            <div class="page-desc">Record of on-chain weapon stat upgrades and burned RRC tokens.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-upgrades">Refresh</button>
+        </div>
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Gear Object ID</th>
+                  <th>Kind</th>
+                  <th>New Level</th>
+                  <th>Stat Increase</th>
+                  <th>RRC Burned</th>
+                  <th>Tx Digest</th>
+                </tr>
+              </thead>
+              <tbody id="upgrades-table-body">
+                <tr><td colspan="6" class="empty-state">Loading upgrades...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 10: MARKETPLACE                            -->
+      <!-- ============================================== -->
+      <div id="tab-market" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">P2P Marketplace & Royalties</div>
+            <div class="page-desc">Decentralized trading of Mech NFTs using native RRC tokens.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-market">Refresh</button>
+        </div>
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Weapon ID</th>
+                  <th>Seller</th>
+                  <th>Buyer</th>
+                  <th>Price</th>
+                  <th>Tx Digest</th>
+                </tr>
+              </thead>
+              <tbody id="market-table-body">
+                <tr><td colspan="6" class="empty-state">Loading marketplace activity...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 11: GAME SIMULATOR                         -->
+      <!-- ============================================== -->
+      <div id="tab-sim" class="tab-content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Gameplay Simulation Environment</div>
+            <div class="page-desc">Simulate Unreal Engine 5 arena battle victories and testnet VRF mints.</div>
+          </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:24px;">
-          <!-- Left Controls Column -->
-          <div>
-            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--cyan); margin-bottom:8px; font-family:'Chakra Petch';">
-              Step 1: Create & Register Match
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Simulate Match Victory</div>
             </div>
-            <div style="display:flex; gap:8px; margin-bottom:16px;">
-              <input type="text" id="harness-match-title" placeholder="Match Title" value="Cyber Arena Showdown #9002" style="flex:2;">
-              <select id="harness-game-mode" style="flex:1;">
-                <option value="3v3 Elimination">3v3 Elimination</option>
-                <option value="Deathmatch">Deathmatch</option>
-                <option value="Objective Control">Objective Control</option>
-              </select>
-              <button class="btn btn-cyan btn-sm" id="btn-harness-create-match">+ Create</button>
-            </div>
-
-            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--cyan); margin-bottom:8px; font-family:'Chakra Petch';">
-              Step 2: Stream Authorized Off-Chain Combat Events
-            </div>
-            <p style="font-size:12px; color:var(--text-dim); margin-bottom:10px;">
-              Stream high-frequency gameplay events off-chain. Validated by server with 0 gas cost.
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+              Executes on-chain VRF minting, awarding a unique Mech NFT and 50 RRC tokens to the active wallet.
             </p>
-            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-              <button class="btn btn-outline btn-sm" id="btn-fire-headshot">🎯 Headshot (+25 pts)</button>
-              <button class="btn btn-outline btn-sm" id="btn-fire-kill">💥 Kill (+50 pts)</button>
-              <button class="btn btn-outline btn-sm" id="btn-fire-assist">🤝 Assist (+15 pts)</button>
-              <button class="btn btn-outline btn-sm" id="btn-fire-obj">🚩 Objective (+100 pts)</button>
-              <button class="btn btn-outline btn-sm" id="btn-fire-dup" style="border-color:var(--amber); color:var(--amber);">⚠️ Duplicate Event Test</button>
-            </div>
-
-            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--cyan); margin-bottom:8px; font-family:'Chakra Petch';">
-              Step 3 & 4: End Match & Execute Batched Sui Settlement
-            </div>
-            <div style="display:flex; gap:10px; margin-top:8px;">
-              <button class="btn btn-outline btn-sm" id="btn-harness-end-match">🏁 End Match & Calculate Plan</button>
-              <button class="btn btn-cyan btn-sm" id="btn-harness-settle">⚡ Settle on Sui Testnet</button>
-            </div>
+            <button class="btn btn-cyan" id="btn-sim-victory" style="width:100%; padding:12px;">
+              Simulate Match Victory (+50 RRC & Gear Mint)
+            </button>
           </div>
 
-          <!-- Right Telemetry & Status Column -->
-          <div style="background:#090e1a; border:1px solid var(--card-border); border-radius:10px; padding:16px; display:flex; flex-direction:column; justify-content:space-between;">
-            <div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Active Match Telemetry</span>
-                <span id="harness-match-status-badge" class="badge badge-success">IN_PROGRESS</span>
-              </div>
-              <div style="font-family:'JetBrains Mono', monospace; font-size:13px; margin-bottom:6px;">
-                Match ID: <strong id="harness-live-match-id" style="color:var(--cyan);">-</strong>
-              </div>
-              <div style="font-size:13px; color:var(--text-dim); margin-bottom:12px;">
-                Total Points: <strong id="harness-live-score" style="color:#fff; font-size:16px;">0 pts</strong> &bull; Events: <strong id="harness-live-event-count">0</strong>
-              </div>
-              <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px;">Off-Chain Event Stream:</div>
-              <div id="harness-event-log" style="height:120px; overflow-y:auto; background:#040711; border:1px solid var(--card-border); border-radius:6px; padding:8px; font-family:'JetBrains Mono', monospace; font-size:11px; color:#cbd5e1;">
-                <em>No events yet. Click combat buttons above to stream events.</em>
-              </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Initialize Player Profile</div>
             </div>
-
-            <div id="harness-settle-result" style="margin-top:12px; font-size:12px; display:none; background:rgba(16, 185, 129, 0.1); border:1px solid rgba(16, 185, 129, 0.3); padding:10px; border-radius:8px;">
-              <!-- Dynamic settlement tx summary -->
-            </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+              Creates an on-chain PlayerProfile object tracking wins, losses, XP, and rank level for the active wallet.
+            </p>
+            <button class="btn btn-outline" id="btn-create-profile" style="width:100%; padding:12px;">
+              Initialize Player Profile Object
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Match Settlement Registry Table -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">📜 Matches & Batched Settlement Registry</div>
-          <button class="btn btn-outline btn-sm" id="btn-refresh-matches">🔄 Refresh Matches</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Match ID</th>
-                <th>Mode / Title</th>
-                <th>Status</th>
-                <th>Off-Chain Points</th>
-                <th>Settlement Payout</th>
-                <th>Sui Tx Digest</th>
-                <th>Gas Efficiency</th>
-              </tr>
-            </thead>
-            <tbody id="matches-table-body">
-              <tr><td colspan="7" class="empty-state">Loading matches...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </main>
+    </main>
+  </div>
 
   <!-- WALLET SELECTION MODAL -->
   <div id="modal-wallet-connect" class="modal-overlay">
     <div class="modal-box">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <div style="font-family:'Chakra Petch'; font-size:18px; font-weight:700; text-transform:uppercase; color:#fff;">
-          🔗 Connect Sui Wallet
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-family:'Chakra Petch'; font-size:16px; font-weight:700; text-transform:uppercase; color:#fff;">
+          Connect Sui Wallet
         </div>
-        <button id="btn-close-wallet-modal" style="background:transparent; border:0; color:var(--text-dim); font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+        <button id="btn-close-wallet-modal" style="background:transparent; border:0; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
       </div>
 
-      <p style="font-size:13px; color:var(--text-dim); margin-bottom:18px; line-height:1.5;">
-        Select an installed wallet compliant with the Sui Wallet Standard to sign transactions and access your Mech assets on <strong style="color:var(--cyan);">Sui Testnet</strong>.
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">
+        Select an installed wallet compliant with the Sui Wallet Standard to sign transactions on <strong>Sui Testnet</strong>.
       </p>
 
-      <div id="wallet-modal-detected-list" style="margin-bottom:16px;">
-        <!-- Dynamically rendered list of installed wallets -->
+      <div id="wallet-modal-detected-list" style="margin-bottom:14px;">
+        <!-- Detected wallets -->
       </div>
 
-      <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:14px; margin-top:14px;">
-        <div style="font-size:11px; text-transform:uppercase; color:var(--text-dim); font-weight:700; margin-bottom:10px;">
-          Developer & Headless Testing Mode
+      <div style="border-top:1px solid var(--card-border-subtle); padding-top:12px;">
+        <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700; margin-bottom:8px;">
+          Developer & Headless Mode
         </div>
-        <div class="wallet-list-item" id="wallet-item-dev-pilot">
-          <div class="wallet-list-item-left">
-            <div class="wallet-item-icon">🔑</div>
-            <div>
-              <div style="font-family:'Chakra Petch'; font-weight:700; color:#fff;">Testnet Pilot Keypair</div>
-              <div style="font-size:11px; color:var(--cyan);">Instant Testnet Address (0xaf41...99f8)</div>
-            </div>
+        <div class="wallet-item" id="wallet-item-dev-pilot">
+          <div>
+            <div style="font-family:'Chakra Petch'; font-weight:700; font-size:13px; color:#fff;">Testnet Pilot Keypair</div>
+            <div style="font-size:11px; color:var(--cyan);">0xaf41...99f8 (Pre-funded)</div>
           </div>
-          <span class="badge badge-purple">Active Pilot</span>
+          <span class="badge badge-purple" style="font-size:9px;">Active Pilot</span>
         </div>
-      </div>
-
-      <div id="wallet-modal-install-help" style="margin-top:14px; font-size:12px; color:var(--text-dim); text-align:center;">
-        Don't have a wallet? Get <a href="https://chrome.google.com/webstore/detail/sui-wallet/opcgpfmipidbgpenhmajoajpbobppdil" target="_blank" style="color:var(--cyan); text-decoration:underline;">Official Sui Wallet</a> or <a href="https://suiet.app/" target="_blank" style="color:var(--cyan); text-decoration:underline;">Suiet</a>.
       </div>
     </div>
   </div>
@@ -1198,7 +1557,7 @@
       toast.textContent = msg;
       toast.style.borderColor = isError ? 'var(--red)' : 'var(--cyan)';
       toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 5000);
+      setTimeout(() => { toast.style.display = 'none'; }, 4500);
     }
 
     // UI elements
@@ -1221,6 +1580,14 @@
     const modalDetectedList = document.getElementById('wallet-modal-detected-list');
     const devPilotItem = document.getElementById('wallet-item-dev-pilot');
     const accountConnectTrigger = document.getElementById('btn-account-connect-trigger');
+    const sidebar = document.getElementById('app-sidebar');
+    const sidebarToggleBtn = document.getElementById('btn-sidebar-toggle');
+    const headerPageTitle = document.getElementById('header-page-title');
+
+    // Sidebar Mobile Toggle
+    sidebarToggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
 
     function updateWalletHeaderUI() {
       if (isConnected && activeAddress) {
@@ -1231,16 +1598,21 @@
         dropdownExplorerLink.href = EXPLORER_ADDR_URL + activeAddress;
         dropdownWalletName.textContent = walletName;
 
-        document.getElementById('account-disconnected-view').style.display = 'none';
-        document.getElementById('account-connected-view').style.display = 'block';
-        document.getElementById('acc-kpi-address').textContent = activeAddress.slice(0, 6) + '...' + activeAddress.slice(-4);
+        const discView = document.getElementById('account-disconnected-view');
+        const connView = document.getElementById('account-connected-view');
+        if (discView) discView.style.display = 'none';
+        if (connView) connView.style.display = 'block';
+        const kpiAddr = document.getElementById('acc-kpi-address');
+        if (kpiAddr) kpiAddr.textContent = activeAddress.slice(0, 6) + '...' + activeAddress.slice(-4);
       } else {
         connectBtn.style.display = 'inline-flex';
         chipContainer.style.display = 'none';
         dropdownMenu.style.display = 'none';
 
-        document.getElementById('account-disconnected-view').style.display = 'block';
-        document.getElementById('account-connected-view').style.display = 'none';
+        const discView = document.getElementById('account-disconnected-view');
+        const connView = document.getElementById('account-connected-view');
+        if (discView) discView.style.display = 'block';
+        if (connView) connView.style.display = 'none';
       }
     }
     updateWalletHeaderUI();
@@ -1401,9 +1773,8 @@
       if (!modalDetectedList) return;
       if (registeredWallets.length === 0) {
         modalDetectedList.innerHTML = `
-          <div style="background:#080d1a; border:1px solid var(--card-border); border-radius:10px; padding:14px; text-align:center; font-size:12px; color:var(--text-dim);">
-            No browser extension wallets detected yet.<br/>
-            You can use the <strong>Testnet Pilot Keypair</strong> below for headless testing or install a Sui wallet extension.
+          <div style="background:#070b16; border:1px solid var(--card-border); border-radius:8px; padding:12px; text-align:center; font-size:11px; color:var(--text-dim);">
+            No browser extension wallets detected.<br/>Use <strong>Testnet Pilot Keypair</strong> below for standalone testing.
           </div>
         `;
         return;
@@ -1412,13 +1783,13 @@
       modalDetectedList.innerHTML = '';
       registeredWallets.forEach(w => {
         const item = document.createElement('div');
-        item.className = 'wallet-list-item';
+        item.className = 'wallet-item';
         item.innerHTML = `
-          <div class="wallet-list-item-left">
-            <div class="wallet-item-icon">${w.icon && typeof w.icon === 'string' && w.icon.startsWith('http') ? `<img src="${w.icon}" width="24" height="24" style="border-radius:4px;" />` : (w.icon || '💼')}</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-size:18px;">${w.icon && typeof w.icon === 'string' && w.icon.startsWith('http') ? `<img src="${w.icon}" width="20" height="20" style="border-radius:4px;" />` : (w.icon || '💼')}</div>
             <div>
-              <div style="font-family:'Chakra Petch'; font-weight:700; color:#fff;">${w.name}</div>
-              <div style="font-size:11px; color:var(--green);">Detected &bull; Standard Compatible</div>
+              <div style="font-family:'Chakra Petch'; font-weight:700; color:#fff; font-size:13px;">${w.name}</div>
+              <div style="font-size:10px; color:var(--green);">Standard Compatible</div>
             </div>
           </div>
           <button class="btn btn-cyan btn-sm">Connect</button>
@@ -1473,7 +1844,7 @@
                 activeAddress = newAcc.address;
                 currentAccount = newAcc;
                 localStorage.setItem('rr_active_wallet', activeAddress);
-                showToast(`Switched account to ${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`);
+                showToast(`Switched to ${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`);
                 updateWalletHeaderUI();
                 loadAll();
               }
@@ -1494,7 +1865,7 @@
         const nonceRes = await fetch(`/auth/nonce?address=${account.address}`).then(r => r.json());
         if (!nonceRes.ok) return;
 
-        showToast('Please approve the ownership verification signature in your wallet...');
+        showToast('Please approve the signature in your wallet...');
         const msgBytes = new TextEncoder().encode(nonceRes.message);
         let signature = null;
 
@@ -1524,11 +1895,11 @@
             sessionToken = verifyRes.sessionToken;
             localStorage.setItem('rr_session_token', sessionToken);
             document.getElementById('dropdown-auth-badge').textContent = 'SIWS Verified ✓';
-            showToast('Cryptographic wallet ownership verified!');
+            showToast('Wallet authenticated via SIWS!');
           }
         }
       } catch (e) {
-        console.warn('SIWS optional sign bypassed or declined:', e.message);
+        console.warn('SIWS optional sign bypassed:', e.message);
       }
     }
 
@@ -1544,31 +1915,89 @@
         const chainName = chains[0] || 'Unknown Network';
         banner.style.display = 'flex';
         document.getElementById('wrong-network-name').textContent = chainName;
-        netBadge.style.background = 'rgba(239, 68, 68, 0.15)';
-        netBadge.style.borderColor = 'var(--red)';
+        netBadge.style.background = 'rgba(239, 68, 68, 0.12)';
+        netBadge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
         netBadge.style.color = 'var(--red)';
-        netLabel.textContent = `⚠️ Wrong Network: ${chainName}`;
+        netLabel.textContent = `⚠️ ${chainName}`;
       } else {
         banner.style.display = 'none';
-        netBadge.style.background = 'rgba(16, 185, 129, 0.1)';
-        netBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        netBadge.style.background = 'var(--green-subtle)';
+        netBadge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
         netBadge.style.color = 'var(--green)';
-        netLabel.textContent = 'Sui Testnet Live';
+        netLabel.textContent = 'Sui Testnet';
       }
     }
 
-    // Tabs Switcher
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    // Navigation Switcher
+    document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         const target = btn.getAttribute('data-tab');
         document.getElementById(target).classList.add('active');
+
+        // Update header breadcrumb title
+        const titleSpan = btn.querySelector('span:first-of-type');
+        if (titleSpan && headerPageTitle) {
+          headerPageTitle.textContent = titleSpan.textContent;
+        }
+
+        // Close sidebar on mobile
+        sidebar.classList.remove('open');
       });
     });
 
-    // 0. Load My Mech Account Overview
+    // ==========================================
+    // 0. Load Overview Data
+    // ==========================================
+    async function loadOverview() {
+      try {
+        const [treasuryRes, matchesRes, govRes, txsRes] = await Promise.all([
+          fetch('/treasury').then(r => r.json()),
+          fetch('/matches').then(r => r.json()),
+          fetch('/governance/config').then(r => r.json()),
+          fetch('/transactions').then(r => r.json()),
+        ]);
+
+        if (treasuryRes.ok) {
+          document.getElementById('ov-kpi-circulating').textContent = treasuryRes.currentSupply + ' RRC';
+          document.getElementById('ov-kpi-minted').textContent = treasuryRes.cumulativeMinted + ' RRC';
+          document.getElementById('ov-kpi-burned').textContent = treasuryRes.cumulativeBurned + ' RRC';
+        }
+
+        if (matchesRes.ok) {
+          document.getElementById('ov-kpi-matches').textContent = matchesRes.count;
+        }
+
+        if (govRes.ok) {
+          document.getElementById('ov-kpi-proposals').textContent = govRes.proposalCount;
+        }
+
+        const tbody = document.getElementById('overview-txs-body');
+        if (txsRes.ok && txsRes.transactions && txsRes.transactions.length > 0) {
+          tbody.innerHTML = '';
+          txsRes.transactions.slice(0, 5).forEach(tx => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td><a class="digest-link" href="${tx.url}" target="_blank">${tx.digest.slice(0, 10)}...${tx.digest.slice(-8)}</a></td>
+              <td>${tx.checkpoint || '-'}</td>
+              <td><span class="badge badge-success">${tx.status}</span></td>
+              <td>${new Date(tx.timestampMs).toLocaleTimeString()}</td>
+              <td><a class="digest-link" href="${tx.url}" target="_blank">Explorer ↗</a></td>
+            `;
+            tbody.appendChild(row);
+          });
+        }
+      } catch (e) {
+        console.error('Overview load error', e);
+      }
+    }
+    document.getElementById('btn-refresh-overview')?.addEventListener('click', loadOverview);
+
+    // ==========================================
+    // 1. Load My Mech Account Overview
+    // ==========================================
     async function loadMyAccount() {
       if (!activeAddress) return;
       try {
@@ -1619,11 +2048,11 @@
                 <span class="badge ${g.rarity === 'Rare' ? 'badge-warning' : 'badge-success'}">${g.rarity}</span>
               </div>
               <div class="gear-name">${g.name}</div>
-              <div class="gear-stats-row"><span>Level</span><strong>${g.level}</strong></div>
-              <div class="gear-stats-row"><span>Damage</span><strong style="color:var(--cyan);">${g.damage}</strong></div>
-              <div class="gear-stats-row"><span>Durability</span><strong>${g.durability}/100</strong></div>
-              <div class="gear-stats-row"><span>Wins</span><strong>${g.wins}</strong></div>
-              <div style="margin-top:14px; display:flex; gap:8px;">
+              <div class="gear-row"><span>Level</span><strong>${g.level}</strong></div>
+              <div class="gear-row"><span>Damage</span><strong style="color:var(--cyan);">${g.damage}</strong></div>
+              <div class="gear-row"><span>Durability</span><strong>${g.durability}/100</strong></div>
+              <div class="gear-row"><span>Wins</span><strong>${g.wins}</strong></div>
+              <div style="margin-top:12px; display:flex; gap:8px;">
                 <button class="btn btn-cyan btn-sm btn-acc-upgrade" data-id="${g.id}" style="flex:1;">
                   Upgrade (-${upgradeCost} RRC)
                 </button>
@@ -1664,7 +2093,6 @@
       }
     }
 
-    // Initialize Profile Action
     document.getElementById('btn-acc-init-profile')?.addEventListener('click', async () => {
       showToast('Initializing player profile on Sui Testnet...');
       const res = await fetch('/player/create', { method: 'POST' }).then(r => r.json());
@@ -1676,10 +2104,11 @@
         showToast(`Profile error: ${res.error}`, true);
       }
     });
-
     document.getElementById('btn-acc-refresh-gear')?.addEventListener('click', loadMyAccount);
 
-    // 1. Load Governance & Proposals
+    // ==========================================
+    // 2. Load Governance & Proposals
+    // ==========================================
     async function loadGovernance() {
       try {
         const [cfgRes, propsRes] = await Promise.all([
@@ -1701,18 +2130,17 @@
         container.innerHTML = '';
         propsRes.proposals.forEach(p => {
           const card = document.createElement('div');
-          card.className = 'proposal-card';
+          card.style.cssText = 'background:#090e1c; border:1px solid var(--card-border); border-radius:10px; padding:16px; margin-bottom:12px;';
 
           const forPct = p.approvalPercent || 0;
-          const againstPct = (100 - forPct).toFixed(1);
           const quorumRatio = Math.min(100, ((p.totalParticipatingVotes / p.requiredQuorum) * 100).toFixed(1));
 
           card.innerHTML = `
-            <div class="proposal-head">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
               <div>
-                <div class="badge badge-purple">Proposal #${p.index}</div>
-                <div class="proposal-title" style="margin-top:6px;">${p.title}</div>
-                <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">
+                <span class="badge badge-purple">Proposal #${p.index}</span>
+                <div style="font-family:'Chakra Petch'; font-size:15px; font-weight:700; color:#fff; margin-top:4px;">${p.title}</div>
+                <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">
                   Parameter: <strong style="color:var(--cyan);">${p.paramName}</strong> &bull; Target Value: <strong style="color:#fff;">${p.targetValue}</strong>
                 </div>
               </div>
@@ -1720,45 +2148,36 @@
                 ${p.stateLabel}
               </div>
             </div>
-            <p style="font-size:13px; color:var(--text-dim); margin: 10px 0;">${p.description}</p>
+            <p style="font-size:12px; color:var(--text-muted); margin: 8px 0;">${p.description}</p>
 
-            <div class="vote-stats">
-              <div>
-                <div style="font-size:11px; color:var(--text-dim);">FOR VOTES</div>
-                <div style="font-size:16px; font-weight:700; color:var(--green);">${p.forVotes}</div>
-              </div>
-              <div>
-                <div style="font-size:11px; color:var(--text-dim);">AGAINST VOTES</div>
-                <div style="font-size:16px; font-weight:700; color:var(--red);">${p.againstVotes}</div>
-              </div>
-              <div>
-                <div style="font-size:11px; color:var(--text-dim);">ABSTAIN</div>
-                <div style="font-size:16px; font-weight:700; color:var(--text-dim);">${p.abstainVotes}</div>
-              </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin: 10px 0; background:rgba(0,0,0,0.25); padding:10px; border-radius:6px; font-size:12px;">
+              <div><span style="color:var(--text-dim);">FOR:</span> <strong style="color:var(--green);">${p.forVotes}</strong></div>
+              <div><span style="color:var(--text-dim);">AGAINST:</span> <strong style="color:var(--red);">${p.againstVotes}</strong></div>
+              <div><span style="color:var(--text-dim);">ABSTAIN:</span> <strong style="color:var(--text-muted);">${p.abstainVotes}</strong></div>
             </div>
 
-            <div style="margin: 12px 0;">
-              <div style="display:flex; justify-content:space-between; font-size:12px;">
-                <span>Quorum Progress (${p.totalParticipatingVotes}/${p.requiredQuorum} needed)</span>
+            <div style="margin: 8px 0;">
+              <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+                <span style="color:var(--text-dim);">Quorum: ${p.totalParticipatingVotes} / ${p.requiredQuorum} needed</span>
                 <span style="color:${p.quorumReached ? 'var(--green)' : 'var(--amber)'}; font-weight:600;">
-                  ${p.quorumReached ? '✓ Quorum Reached' : `${quorumRatio}% of Quorum`}
+                  ${p.quorumReached ? '✓ Quorum Reached' : `${quorumRatio}%`}
                 </span>
               </div>
-              <div class="progress-bar-bg">
-                <div class="progress-bar-fill" style="width: ${quorumRatio}%;"></div>
+              <div style="background:#1e293b; border-radius:999px; height:6px; overflow:hidden;">
+                <div style="height:100%; width:${quorumRatio}%; background:linear-gradient(90deg, var(--cyan), var(--purple));"></div>
               </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; pt-2; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
-              <a class="digest-link" href="${p.url}" target="_blank">View on Suiscan ↗</a>
-              <div style="display:flex; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; pt-2; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
+              <a class="digest-link" href="${p.url}" target="_blank">Suiscan ↗</a>
+              <div style="display:flex; gap:6px;">
                 ${p.isVotingOpen ? `
                   <button class="btn btn-outline btn-sm btn-vote" data-id="${p.id}" data-type="1" style="color:var(--green); border-color:var(--green);">Vote For</button>
                   <button class="btn btn-outline btn-sm btn-vote" data-id="${p.id}" data-type="0" style="color:var(--red); border-color:var(--red);">Vote Against</button>
                   <button class="btn btn-outline btn-sm btn-vote" data-id="${p.id}" data-type="2">Abstain</button>
                 ` : ''}
                 ${p.isTimelocked && p.isTimelockExpired ? `
-                  <button class="btn btn-cyan btn-sm btn-execute" data-id="${p.id}">Execute Proposal</button>
+                  <button class="btn btn-cyan btn-sm btn-execute" data-id="${p.id}">Execute</button>
                 ` : ''}
               </div>
             </div>
@@ -1766,7 +2185,7 @@
           container.appendChild(card);
         });
 
-        // Vote button listeners
+        // Vote listeners
         document.querySelectorAll('.btn-vote').forEach(b => {
           b.addEventListener('click', async () => {
             const id = b.getAttribute('data-id');
@@ -1779,7 +2198,7 @@
             }).then(r => r.json());
 
             if (res.ok) {
-              showToast(`Vote submitted! Digest: ${res.digest.slice(0, 8)}...`);
+              showToast(`Vote submitted! Tx: ${res.digest.slice(0, 8)}...`);
               loadGovernance();
             } else {
               showToast(`Vote error: ${res.error}`, true);
@@ -1787,7 +2206,7 @@
           });
         });
 
-        // Execute button listener
+        // Execute listeners
         document.querySelectorAll('.btn-execute').forEach(b => {
           b.addEventListener('click', async () => {
             const id = b.getAttribute('data-id');
@@ -1798,7 +2217,7 @@
               body: JSON.stringify({})
             }).then(r => r.json());
             if (res.ok) {
-              showToast(`Proposal executed! Digest: ${res.digest.slice(0, 8)}...`);
+              showToast(`Proposal executed! Tx: ${res.digest.slice(0, 8)}...`);
               loadGovernance();
             } else {
               showToast(`Execution error: ${res.error}`, true);
@@ -1812,15 +2231,14 @@
     }
 
     // Modal toggles
-    document.getElementById('btn-open-create-prop').addEventListener('click', () => {
+    document.getElementById('btn-open-create-prop')?.addEventListener('click', () => {
       document.getElementById('card-create-prop').style.display = 'block';
     });
-    document.getElementById('btn-close-create-prop').addEventListener('click', () => {
+    document.getElementById('btn-close-create-prop')?.addEventListener('click', () => {
       document.getElementById('card-create-prop').style.display = 'none';
     });
 
-    // Submit Proposal
-    document.getElementById('btn-submit-proposal').addEventListener('click', async () => {
+    document.getElementById('btn-submit-proposal')?.addEventListener('click', async () => {
       const title = document.getElementById('prop-input-title').value;
       const desc = document.getElementById('prop-input-desc').value;
       const paramId = Number(document.getElementById('prop-input-param').value);
@@ -1840,7 +2258,7 @@
       }).then(r => r.json());
 
       if (res.ok) {
-        showToast(`Proposal created! Digest: ${res.digest.slice(0, 8)}...`);
+        showToast(`Proposal created! Tx: ${res.digest.slice(0, 8)}...`);
         document.getElementById('card-create-prop').style.display = 'none';
         loadGovernance();
       } else {
@@ -1848,7 +2266,9 @@
       }
     });
 
-    // 2. Load Transactions
+    // ==========================================
+    // 3. Load Transactions
+    // ==========================================
     async function loadTransactions() {
       try {
         const res = await fetch('/transactions').then(r => r.json());
@@ -1866,7 +2286,7 @@
             <td>${tx.checkpoint || '-'}</td>
             <td><span class="badge badge-success">${tx.status}</span></td>
             <td>${new Date(tx.timestampMs).toLocaleTimeString()}</td>
-            <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${tx.sender ? tx.sender.slice(0, 6) + '...' + tx.sender.slice(-4) : '-'}</span></td>
+            <td><span style="font-family:'JetBrains Mono'; font-size:11px;">${tx.sender ? tx.sender.slice(0, 6) + '...' + tx.sender.slice(-4) : '-'}</span></td>
             <td><a class="digest-link" href="${tx.url}" target="_blank">Explorer ↗</a></td>
           `;
           tbody.appendChild(row);
@@ -1874,7 +2294,9 @@
       } catch (e) {}
     }
 
-    // 3. Load Tokenomics & Treasury
+    // ==========================================
+    // 4. Load Tokenomics & Treasury
+    // ==========================================
     async function loadTreasury() {
       try {
         const res = await fetch('/treasury').then(r => r.json());
@@ -1887,12 +2309,16 @@
         }
       } catch (e) {}
     }
+    document.getElementById('btn-refresh-treasury')?.addEventListener('click', loadTreasury);
 
-    // 4. Load Gear NFTs
+    // ==========================================
+    // 5. Load Gear NFTs
+    // ==========================================
     async function loadGear() {
       const container = document.getElementById('gear-grid-container');
       try {
-        const res = await fetch(`/gear/${activeAddress}`).then(r => r.json());
+        const target = activeAddress || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
+        const res = await fetch(`/gear/${target}`).then(r => r.json());
         if (!res.ok || !res.gear || res.gear.length === 0) {
           container.innerHTML = '<div class="empty-state">No Mech NFTs found for active wallet. Click "Simulate Match Victory" to earn one!</div>';
           return;
@@ -1909,11 +2335,11 @@
               <span class="badge ${g.rarity === 'Rare' ? 'badge-warning' : 'badge-success'}">${g.rarity}</span>
             </div>
             <div class="gear-name">${g.name}</div>
-            <div class="gear-stats-row"><span>Level</span><strong>${g.level}</strong></div>
-            <div class="gear-stats-row"><span>Damage</span><strong style="color:var(--cyan);">${g.damage}</strong></div>
-            <div class="gear-stats-row"><span>Durability</span><strong>${g.durability}/100</strong></div>
-            <div class="gear-stats-row"><span>Wins</span><strong>${g.wins}</strong></div>
-            <div style="margin-top:14px; display:flex; gap:8px;">
+            <div class="gear-row"><span>Level</span><strong>${g.level}</strong></div>
+            <div class="gear-row"><span>Damage</span><strong style="color:var(--cyan);">${g.damage}</strong></div>
+            <div class="gear-row"><span>Durability</span><strong>${g.durability}/100</strong></div>
+            <div class="gear-row"><span>Wins</span><strong>${g.wins}</strong></div>
+            <div style="margin-top:12px; display:flex; gap:8px;">
               <button class="btn btn-cyan btn-sm btn-upgrade-gear" data-id="${g.id}" style="flex:1;">
                 Upgrade (-${upgradeCost} RRC)
               </button>
@@ -1926,21 +2352,7 @@
         document.querySelectorAll('.btn-upgrade-gear').forEach(b => {
           b.addEventListener('click', async () => {
             const wId = b.getAttribute('data-id');
-            showToast('Upgrading weapon & burning RRC on-chain...');
-            const upgRes = await fetch('/upgrade', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ address: activeAddress, weaponId: wId })
-            }).then(r => r.json());
-
-            if (upgRes.ok) {
-              showToast(`Upgraded! Level ${upgRes.newLevel}, Damage ${upgRes.newDamage}. Tx: ${upgRes.digest.slice(0, 8)}...`);
-              loadGear();
-              loadTreasury();
-              loadUpgrades();
-            } else {
-              showToast(`Upgrade error: ${upgRes.error}`, true);
-            }
+            await executeUpgrade(wId);
           });
         });
 
@@ -1949,7 +2361,9 @@
       }
     }
 
-    // 5. Load Battles
+    // ==========================================
+    // 6. Load Battles
+    // ==========================================
     async function loadBattles() {
       try {
         const res = await fetch('/battles').then(r => r.json());
@@ -1963,7 +2377,7 @@
           const row = document.createElement('tr');
           row.innerHTML = `
             <td>#${b.battleId}</td>
-            <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${b.player ? b.player.slice(0, 6) + '...' + b.player.slice(-4) : '-'}</span></td>
+            <td><span style="font-family:'JetBrains Mono'; font-size:11px;">${b.player ? b.player.slice(0, 6) + '...' + b.player.slice(-4) : '-'}</span></td>
             <td><span class="badge ${b.won ? 'badge-success' : 'badge-warning'}">${b.won ? 'VICTORY' : 'DEFEAT'}</span></td>
             <td>${b.enemiesKilled}</td>
             <td>+${b.xpGained} XP</td>
@@ -1974,7 +2388,9 @@
       } catch (e) {}
     }
 
-    // 6. Load Upgrades
+    // ==========================================
+    // 7. Load Upgrades
+    // ==========================================
     async function loadUpgrades() {
       try {
         const res = await fetch('/upgrades').then(r => r.json());
@@ -1987,7 +2403,7 @@
         res.upgrades.forEach(u => {
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${u.gearId.slice(0, 8)}...</span></td>
+            <td><span style="font-family:'JetBrains Mono'; font-size:11px;">${u.gearId.slice(0, 8)}...</span></td>
             <td>${u.kind}</td>
             <td><strong>Lv ${u.newLevel}</strong></td>
             <td><span style="color:var(--cyan); font-weight:700;">+${u.newStat}</span></td>
@@ -1999,7 +2415,9 @@
       } catch (e) {}
     }
 
-    // 7. Load Marketplace
+    // ==========================================
+    // 8. Load Marketplace
+    // ==========================================
     async function loadMarketplace() {
       try {
         const res = await fetch('/marketplace/activity').then(r => r.json());
@@ -2024,38 +2442,9 @@
       } catch (e) {}
     }
 
-    // 8. Simulator Actions
-    document.getElementById('btn-sim-victory').addEventListener('click', async () => {
-      showToast('Executing VRF victory mint on Sui Testnet...');
-      const res = await fetch('/reward', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: activeAddress, won: true, enemiesKilled: 3 })
-      }).then(r => r.json());
-
-      if (res.ok) {
-        showToast(`Victory rewarded! Minted ${res.minted?.name || 'NFT'} & +50 RRC. Digest: ${res.digest.slice(0, 8)}...`);
-        loadGear();
-        loadTreasury();
-        loadTransactions();
-      } else {
-        showToast(`Reward error: ${res.error}`, true);
-      }
-    });
-
-    document.getElementById('btn-create-profile').addEventListener('click', async () => {
-      showToast('Creating player profile on-chain...');
-      const res = await fetch('/player/create', { method: 'POST' }).then(r => r.json());
-      if (res.ok) {
-        showToast(`Player profile created! Digest: ${res.digest.slice(0, 8)}...`);
-        loadGear();
-        loadTransactions();
-      } else {
-        showToast(`Profile error: ${res.error}`, true);
-      }
-    });
-
-    // 8. Load Matches & Batched Settlement
+    // ==========================================
+    // 9. Load Matches & Batched Settlement
+    // ==========================================
     let currentHarnessMatchId = null;
 
     async function loadMatches() {
@@ -2063,7 +2452,7 @@
         const res = await fetch('/matches').then(r => r.json());
         const tbody = document.getElementById('matches-table-body');
         if (!res.ok || !res.matches || res.matches.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No matches found. Create one using the harness above!</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No matches recorded yet. Create one with the harness above!</td></tr>';
           return;
         }
 
@@ -2087,7 +2476,7 @@
               ${m.settlementTx ? `<a class="digest-link" href="${m.settlementTx.url}" target="_blank">${m.settlementTx.digest.slice(0, 8)}... ↗</a>` : '<span style="color:var(--text-dim);">-</span>'}
             </td>
             <td>
-              ${m.settlementTx ? `<span style="color:var(--green); font-size:12px;">${m.settlementTx.gasUsedSui} SUI (&gt;96% saved)</span>` : '<span style="color:var(--text-dim); font-size:12px;">Off-chain (0 gas)</span>'}
+              ${m.settlementTx ? `<span style="color:var(--green); font-size:11px;">${m.settlementTx.gasUsedSui} SUI (&gt;96% saved)</span>` : '<span style="color:var(--text-dim); font-size:11px;">Off-chain (0 gas)</span>'}
             </td>
           `;
           tbody.appendChild(row);
@@ -2097,7 +2486,7 @@
       }
     }
 
-    // Interactive Harness Event Listeners
+    // Match Harness Listeners
     const harnessTitleInput = document.getElementById('harness-match-title');
     const harnessModeInput = document.getElementById('harness-game-mode');
     const harnessIdLabel = document.getElementById('harness-live-match-id');
@@ -2107,18 +2496,19 @@
     const harnessBadge = document.getElementById('harness-match-status-badge');
     const harnessResult = document.getElementById('harness-settle-result');
 
-    document.getElementById('btn-harness-create-match').addEventListener('click', async () => {
+    document.getElementById('btn-harness-create-match')?.addEventListener('click', async () => {
       const title = harnessTitleInput.value || 'Cyber Arena Match';
       const gameMode = harnessModeInput.value || '3v3 Elimination';
-      showToast('Creating test match in trusted scoring state machine...');
+      showToast('Creating test match in state machine...');
 
+      const targetAddr = activeAddress || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
       const res = await fetch('/matches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
           gameMode,
-          participants: [{ address: activeAddress, name: 'Pilot_Active', team: 'Blue' }]
+          participants: [{ address: targetAddr, name: 'Pilot_Active', team: 'Blue' }]
         })
       }).then(r => r.json());
 
@@ -2140,23 +2530,24 @@
 
     async function streamCombatEvent(eventType, eventId = null) {
       if (!currentHarnessMatchId) {
-        showToast('Please create a match first (Step 1)', true);
+        showToast('Please create a match first (Stage 1)', true);
         return;
       }
 
+      const targetAddr = activeAddress || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
       const res = await fetch(`/matches/${currentHarnessMatchId}/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventId,
-          playerAddress: activeAddress,
+          playerAddress: targetAddr,
           eventType
         })
       }).then(r => r.json());
 
       if (res.ok) {
         if (res.deduplicated) {
-          showToast('⚠️ Duplicate event detected and safely rejected! Anti-cheat verified.', true);
+          showToast('⚠️ Duplicate event safely rejected! Anti-cheat verified.', true);
           harnessLog.innerHTML += `<div style="color:var(--amber);">[DEDUP REJECT] Event '${eventId}' ignored.</div>`;
         } else {
           showToast(`+${res.event.points} pts recorded off-chain for ${eventType}! (0 gas)`);
@@ -2171,13 +2562,13 @@
       }
     }
 
-    document.getElementById('btn-fire-headshot').addEventListener('click', () => streamCombatEvent('headshot'));
-    document.getElementById('btn-fire-kill').addEventListener('click', () => streamCombatEvent('kill'));
-    document.getElementById('btn-fire-assist').addEventListener('click', () => streamCombatEvent('assist'));
-    document.getElementById('btn-fire-obj').addEventListener('click', () => streamCombatEvent('objective'));
-    document.getElementById('btn-fire-dup').addEventListener('click', () => streamCombatEvent('headshot', 'dup_static_event_id_001'));
+    document.getElementById('btn-fire-headshot')?.addEventListener('click', () => streamCombatEvent('headshot'));
+    document.getElementById('btn-fire-kill')?.addEventListener('click', () => streamCombatEvent('kill'));
+    document.getElementById('btn-fire-assist')?.addEventListener('click', () => streamCombatEvent('assist'));
+    document.getElementById('btn-fire-obj')?.addEventListener('click', () => streamCombatEvent('objective'));
+    document.getElementById('btn-fire-dup')?.addEventListener('click', () => streamCombatEvent('headshot', 'dup_static_event_id_001'));
 
-    document.getElementById('btn-harness-end-match').addEventListener('click', async () => {
+    document.getElementById('btn-harness-end-match')?.addEventListener('click', async () => {
       if (!currentHarnessMatchId) {
         showToast('Please create a match first', true);
         return;
@@ -2196,7 +2587,7 @@
       }
     });
 
-    document.getElementById('btn-harness-settle').addEventListener('click', async () => {
+    document.getElementById('btn-harness-settle')?.addEventListener('click', async () => {
       if (!currentHarnessMatchId) {
         showToast('Please create a match first', true);
         return;
@@ -2217,30 +2608,58 @@
         loadMatches();
         loadTreasury();
         loadTransactions();
+        loadOverview();
       } else {
         showToast(`Settlement error: ${res.error}`, true);
       }
     });
 
-    document.getElementById('btn-refresh-matches').addEventListener('click', loadMatches);
+    document.getElementById('btn-refresh-matches')?.addEventListener('click', loadMatches);
 
-    // Refresh buttons
-    document.getElementById('btn-refresh-txs').addEventListener('click', loadTransactions);
-    document.getElementById('btn-refresh-gear').addEventListener('click', loadGear);
-    document.getElementById('btn-refresh-battles').addEventListener('click', loadBattles);
-    document.getElementById('btn-refresh-upgrades').addEventListener('click', loadUpgrades);
-    document.getElementById('btn-refresh-market').addEventListener('click', loadMarketplace);
+    // ==========================================
+    // 10. Simulator Handlers
+    // ==========================================
+    document.getElementById('btn-sim-victory')?.addEventListener('click', async () => {
+      showToast('Executing VRF victory mint on Sui Testnet...');
+      const target = activeAddress || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
+      const res = await fetch('/reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: target, won: true, enemiesKilled: 3 })
+      }).then(r => r.json());
+
+      if (res.ok) {
+        showToast(`Victory rewarded! Minted ${res.minted?.name || 'NFT'} & +50 RRC. Tx: ${res.digest.slice(0, 8)}...`);
+        loadGear();
+        loadTreasury();
+        loadTransactions();
+        loadOverview();
+        loadMyAccount();
+      } else {
+        showToast(`Reward error: ${res.error}`, true);
+      }
+    });
+
+    document.getElementById('btn-create-profile')?.addEventListener('click', async () => {
+      showToast('Creating player profile on-chain...');
+      const res = await fetch('/player/create', { method: 'POST' }).then(r => r.json());
+      if (res.ok) {
+        showToast(`Player profile created! Tx: ${res.digest.slice(0, 8)}...`);
+        loadGear();
+        loadTransactions();
+        loadMyAccount();
+      } else {
+        showToast(`Profile error: ${res.error}`, true);
+      }
+    });
 
     async function executeUpgrade(wId) {
-      if (!activeAddress) {
-        openWalletModal();
-        return;
-      }
+      const target = activeAddress || '0xaf41e4087b2d2b86a89c506eaf31cf571150a62c043a27b5d34ca4b03eb299f8';
       showToast('Upgrading weapon & burning RRC on Sui Testnet...');
       const upgRes = await fetch('/upgrade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: activeAddress, weaponId: wId })
+        body: JSON.stringify({ address: target, weaponId: wId })
       }).then(r => r.json());
 
       if (upgRes.ok) {
@@ -2249,12 +2668,21 @@
         loadGear();
         loadTreasury();
         loadUpgrades();
+        loadOverview();
       } else {
         showToast(`Upgrade error: ${upgRes.error}`, true);
       }
     }
 
+    // Refresh buttons
+    document.getElementById('btn-refresh-txs')?.addEventListener('click', loadTransactions);
+    document.getElementById('btn-refresh-gear')?.addEventListener('click', loadGear);
+    document.getElementById('btn-refresh-battles')?.addEventListener('click', loadBattles);
+    document.getElementById('btn-refresh-upgrades')?.addEventListener('click', loadUpgrades);
+    document.getElementById('btn-refresh-market')?.addEventListener('click', loadMarketplace);
+
     function loadAll() {
+      loadOverview();
       loadMyAccount();
       loadGovernance();
       loadTransactions();
