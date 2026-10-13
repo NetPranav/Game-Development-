@@ -1651,6 +1651,17 @@
           <span class="badge badge-purple" style="font-size:9px;">Active Pilot</span>
         </div>
       </div>
+
+      <div style="border-top:1px solid var(--card-border-subtle); padding-top:12px; margin-top:10px;">
+        <div style="font-size:10px; text-transform:uppercase; color:var(--text-dim); font-weight:700; margin-bottom:8px;">
+          Custom Test Account (Clean State from Start)
+        </div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="input-custom-wallet-address" placeholder="0x... enter Account 2 or new address" 
+            style="flex:1; padding:7px 10px; border-radius:6px; border:1px solid var(--card-border); font-size:11px; font-family:'JetBrains Mono', monospace; background:var(--panel-bg); color:var(--text);" />
+          <button class="btn btn-outline btn-sm" id="btn-connect-custom-address" style="flex-shrink:0;">Use</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1865,6 +1876,19 @@
           });
         } catch (e) {}
       }
+
+      if (currentWallet?.features && currentWallet.features['standard:disconnect']) {
+        try {
+          await currentWallet.features['standard:disconnect'].disconnect();
+        } catch (e) {
+          console.warn('Wallet disconnect feature error:', e);
+        }
+      } else if (currentWallet?.injected && typeof currentWallet.injected.disconnect === 'function') {
+        try {
+          await currentWallet.injected.disconnect();
+        } catch (e) {}
+      }
+
       activeAddress = null;
       currentWallet = null;
       currentAccount = null;
@@ -1878,7 +1902,7 @@
       clearAllData();
       updateWalletHeaderUI();
       updateWalletGateUI();
-      showToast('Wallet disconnected.');
+      showToast('Wallet disconnected. Authorization cleared.');
     });
 
     // Modal controls
@@ -1916,6 +1940,28 @@
 
     devPilotItem?.addEventListener('click', connectPilot);
     gatePilotBtn?.addEventListener('click', connectPilot);
+
+    // Custom Test Account connection
+    document.getElementById('btn-connect-custom-address')?.addEventListener('click', () => {
+      const input = document.getElementById('input-custom-wallet-address');
+      const customAddr = input?.value?.trim();
+      if (!customAddr || !/^0x[0-9a-fA-F]{1,64}$/.test(customAddr)) {
+        showToast('Please enter a valid 0x... Sui address', true);
+        return;
+      }
+      activeAddress = customAddr;
+      walletName = `Test Account (${customAddr.slice(0, 6)}...${customAddr.slice(-4)})`;
+      isConnected = true;
+      currentWallet = { name: walletName, isCustom: true };
+      currentAccount = { address: activeAddress, chains: ['sui:testnet'] };
+      localStorage.setItem('rr_active_wallet', activeAddress);
+      localStorage.setItem('rr_wallet_name', walletName);
+      closeWalletModal();
+      updateWalletHeaderUI();
+      updateWalletGateUI();
+      loadAll();
+      showToast(`Connected with test account ${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`);
+    });
 
     // Discover Wallet Standard implementations
     function discoverWallets() {
@@ -2025,15 +2071,35 @@
         `;
         item.addEventListener('click', () => connectRealWallet(w));
         modalDetectedList.appendChild(item);
+
+        if (w.accounts && w.accounts.length > 1) {
+          const accsDiv = document.createElement('div');
+          accsDiv.style.cssText = 'padding: 4px 12px 10px 40px; display:flex; flex-direction:column; gap:6px;';
+          w.accounts.forEach((acc, idx) => {
+            const addr = typeof acc === 'string' ? acc : acc.address;
+            const accBtn = document.createElement('button');
+            accBtn.className = 'btn btn-outline btn-sm';
+            accBtn.style.cssText = 'font-size:11px; text-align:left; justify-content:space-between; display:flex; width:100%;';
+            accBtn.innerHTML = `<span>Account ${idx + 1} (${addr.slice(0, 6)}...${addr.slice(-4)})</span> <span style="color:var(--cyan);">Select →</span>`;
+            accBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              connectRealWallet(w, acc);
+            });
+            accsDiv.appendChild(accBtn);
+          });
+          modalDetectedList.appendChild(accsDiv);
+        }
       });
     }
 
-    async function connectRealWallet(wallet) {
+    async function connectRealWallet(wallet, forcedAccount = null) {
       try {
         showToast(`Connecting to ${wallet.name}...`);
         let accounts = [];
 
-        if (wallet.features && wallet.features['standard:connect']) {
+        if (forcedAccount) {
+          accounts = [forcedAccount];
+        } else if (wallet.features && wallet.features['standard:connect']) {
           const res = await wallet.features['standard:connect'].connect();
           accounts = res.accounts || wallet.accounts || [];
         } else if (wallet.injected && typeof wallet.injected.requestPermissions === 'function') {
