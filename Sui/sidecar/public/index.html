@@ -9,29 +9,31 @@
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #070a13;
-      --sidebar-bg: #0a0e1b;
-      --sidebar-border: #162036;
-      --card-bg: #0d1324;
-      --card-hover: #121a32;
-      --card-border: #19243c;
-      --card-border-subtle: rgba(255, 255, 255, 0.06);
-      --header-bg: rgba(10, 14, 27, 0.85);
+      --bg: #f8fafc;
+      --sidebar-bg: #ffffff;
+      --sidebar-border: #e2e8f0;
+      --card-bg: #ffffff;
+      --card-hover: #f8fafc;
+      --card-border: #e2e8f0;
+      --card-border-subtle: #f1f5f9;
+      --header-bg: rgba(255, 255, 255, 0.95);
+      --panel-bg: #f8fafc;
+      --panel-border: #e2e8f0;
 
-      --cyan: #00e5ff;
-      --cyan-subtle: rgba(0, 229, 255, 0.12);
-      --purple: #8b5cf6;
-      --purple-subtle: rgba(139, 92, 246, 0.12);
-      --green: #10b981;
-      --green-subtle: rgba(16, 185, 129, 0.12);
-      --amber: #f59e0b;
-      --amber-subtle: rgba(245, 158, 11, 0.12);
-      --red: #ef4444;
-      --red-subtle: rgba(239, 68, 68, 0.12);
+      --cyan: #0284c7;
+      --cyan-subtle: rgba(2, 132, 199, 0.08);
+      --purple: #7c3aed;
+      --purple-subtle: rgba(124, 58, 237, 0.08);
+      --green: #16a34a;
+      --green-subtle: rgba(22, 163, 74, 0.08);
+      --amber: #d97706;
+      --amber-subtle: rgba(217, 119, 6, 0.08);
+      --red: #dc2626;
+      --red-subtle: rgba(220, 38, 38, 0.08);
 
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
       --sidebar-width: 250px;
       --header-height: 60px;
     }
@@ -59,6 +61,7 @@
       flex-direction: column;
       z-index: 90;
       transition: transform 0.25s ease;
+      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02);
     }
 
     .brand-section {
@@ -72,14 +75,14 @@
     .brand-logo {
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      background: linear-gradient(135deg, #0284c7, #7c3aed);
       border-radius: 8px;
       display: grid;
       place-items: center;
       font-weight: 800;
       font-family: 'Chakra Petch', sans-serif;
       font-size: 15px;
-      color: #000;
+      color: #fff;
       flex-shrink: 0;
     }
     .brand-title {
@@ -87,7 +90,7 @@
       font-size: 16px;
       font-weight: 700;
       letter-spacing: 0.5px;
-      color: #fff;
+      color: var(--text);
       line-height: 1.2;
     }
     .brand-sub {
@@ -95,6 +98,7 @@
       color: var(--text-dim);
       letter-spacing: 0.3px;
       text-transform: uppercase;
+      font-weight: 600;
     }
 
     .sidebar-scroll {
@@ -143,8 +147,8 @@
       transition: opacity 0.15s ease;
     }
     .nav-btn:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      background: #f1f5f9;
     }
     .nav-btn:hover svg {
       opacity: 1;
@@ -164,19 +168,23 @@
       font-weight: 700;
       padding: 2px 6px;
       border-radius: 999px;
-      background: rgba(0, 229, 255, 0.15);
+      background: rgba(2, 132, 199, 0.1);
       color: var(--cyan);
     }
 
     .sidebar-footer {
       padding: 14px 16px;
       border-top: 1px solid var(--sidebar-border);
-      background: #080c18;
+      background: #ffffff;
     }
     .net-status-box {
       display: flex;
       flex-direction: column;
       gap: 4px;
+      background: #f8fafc;
+      border: 1px solid var(--sidebar-border);
+      border-radius: 8px;
+      padding: 10px 12px;
     }
     .net-status-header {
       display: flex;
@@ -191,11 +199,11 @@
       height: 7px;
       border-radius: 50%;
       background: var(--green);
-      box-shadow: 0 0 8px var(--green);
+      box-shadow: 0 0 6px rgba(22, 163, 74, 0.4);
     }
     .net-status-sub {
       font-size: 11px;
-      color: var(--text-dim);
+      color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
     }
 
@@ -207,6 +215,7 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      background: var(--bg);
     }
 
     header.top-header {
@@ -221,6 +230,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
     }
     .header-left {
       display: flex;
@@ -229,7 +239,7 @@
     }
     .sidebar-toggle-btn {
       display: none;
-      background: transparent;
+      background: #ffffff;
       border: 1px solid var(--sidebar-border);
       border-radius: 6px;
       color: var(--text-muted);
@@ -246,7 +256,7 @@
     }
     .breadcrumb-app { color: var(--text-dim); font-weight: 500; }
     .breadcrumb-sep { color: var(--text-dim); font-size: 11px; }
-    .breadcrumb-page { color: #fff; font-weight: 600; font-family: 'Chakra Petch', sans-serif; text-transform: uppercase; }
+    .breadcrumb-page { color: var(--text); font-weight: 700; font-family: 'Chakra Petch', sans-serif; text-transform: uppercase; }
 
     .header-right {
       display: flex;
@@ -263,28 +273,29 @@
       font-size: 11px;
       font-weight: 600;
       background: var(--green-subtle);
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      border: 1px solid rgba(22, 163, 74, 0.25);
       color: var(--green);
     }
 
     .wallet-chip {
-      background: #090e1a;
+      background: #ffffff;
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 5px 12px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
-      color: #fff;
+      color: var(--text);
       display: flex;
       align-items: center;
       gap: 8px;
       cursor: pointer;
       transition: all 0.15s ease;
       user-select: none;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
     .wallet-chip:hover {
-      border-color: rgba(255, 255, 255, 0.2);
-      background: #0e1526;
+      border-color: #cbd5e1;
+      background: #f8fafc;
     }
 
     /* Wallet Dropdown */
@@ -294,11 +305,11 @@
       right: 0;
       margin-top: 8px;
       width: 310px;
-      background: #0c1222;
+      background: #ffffff;
       border: 1px solid var(--sidebar-border);
       border-radius: 12px;
       padding: 14px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
       z-index: 100;
       display: none;
     }
@@ -312,9 +323,9 @@
 
     /* Wrong Network Banner */
     .network-banner {
-      background: rgba(239, 68, 68, 0.12);
-      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
+      background: #fef2f2;
+      border-bottom: 1px solid #fecaca;
+      color: #b91c1c;
       padding: 10px 28px;
       display: none;
       align-items: center;
@@ -347,7 +358,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #fff;
+      color: var(--text);
     }
     .page-desc {
       font-size: 13px;
@@ -367,29 +378,31 @@
       border: 1px solid var(--card-border);
       border-radius: 10px;
       padding: 18px;
-      transition: border-color 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      transition: all 0.15s ease;
     }
     .kpi-card:hover {
-      border-color: rgba(255, 255, 255, 0.15);
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
     .kpi-label {
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: var(--text-dim);
+      color: var(--text-muted);
       margin-bottom: 8px;
     }
     .kpi-val {
       font-family: 'Chakra Petch', sans-serif;
       font-size: 26px;
       font-weight: 700;
-      color: #fff;
+      color: var(--text);
       line-height: 1.1;
     }
     .kpi-sub {
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--text-dim);
       margin-top: 6px;
     }
 
@@ -400,6 +413,7 @@
       border-radius: 12px;
       padding: 22px;
       margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
     .card-header {
       display: flex;
@@ -414,7 +428,7 @@
       font-size: 16px;
       font-weight: 700;
       text-transform: uppercase;
-      color: #fff;
+      color: var(--text);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -428,7 +442,7 @@
       margin-bottom: 24px;
     }
     .stepper-step {
-      background: #090e1c;
+      background: var(--panel-bg);
       border: 1px solid var(--card-border);
       border-radius: 10px;
       padding: 16px;
@@ -445,7 +459,7 @@
       font-family: 'Chakra Petch', sans-serif;
       font-size: 14px;
       font-weight: 700;
-      color: #fff;
+      color: var(--text);
       margin-bottom: 4px;
     }
     .stepper-desc {
@@ -471,9 +485,9 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: var(--text-dim);
+      color: var(--text-muted);
       border-bottom: 1px solid var(--card-border);
-      background: #080d1a;
+      background: var(--panel-bg);
     }
     td {
       padding: 12px 14px;
@@ -481,7 +495,7 @@
       color: var(--text);
     }
     tr:last-child td { border-bottom: 0; }
-    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    tr:hover td { background: #f8fafc; }
 
     /* Badges */
     .badge {
@@ -496,10 +510,10 @@
       letter-spacing: 0.3px;
       text-transform: uppercase;
     }
-    .badge-success { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-warning { background: var(--amber-subtle); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .badge-purple  { background: var(--purple-subtle); color: var(--purple); border: 1px solid rgba(139, 92, 246, 0.3); }
-    .badge-cyan    { background: var(--cyan-subtle); color: var(--cyan); border: 1px solid rgba(0, 229, 255, 0.3); }
+    .badge-success { background: var(--green-subtle); color: var(--green); border: 1px solid rgba(22, 163, 74, 0.25); }
+    .badge-warning { background: var(--amber-subtle); color: var(--amber); border: 1px solid rgba(217, 119, 6, 0.25); }
+    .badge-purple  { background: var(--purple-subtle); color: var(--purple); border: 1px solid rgba(124, 58, 237, 0.25); }
+    .badge-cyan    { background: var(--cyan-subtle); color: var(--cyan); border: 1px solid rgba(2, 132, 199, 0.25); }
 
     /* Buttons & Inputs */
     .btn {
@@ -520,24 +534,25 @@
     }
     .btn-cyan {
       background: var(--cyan);
-      color: #000;
+      color: #ffffff;
     }
-    .btn-cyan:hover { background: #33ebff; }
+    .btn-cyan:hover { background: #0369a1; }
     .btn-outline {
-      background: transparent;
-      border-color: var(--card-border);
-      color: var(--text-muted);
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: var(--text);
     }
     .btn-outline:hover {
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #fff;
+      border-color: #94a3b8;
+      background: #f8fafc;
+      color: var(--text);
     }
     .btn-sm { padding: 6px 10px; font-size: 11px; }
 
     input, select, textarea {
-      background: #070c18;
-      border: 1px solid var(--card-border);
-      color: #fff;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: var(--text);
       padding: 8px 12px;
       border-radius: 6px;
       font-family: 'Inter', sans-serif;
@@ -548,6 +563,7 @@
     }
     input:focus, select:focus, textarea:focus {
       border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
     }
 
     /* Gear Grid */
@@ -557,17 +573,18 @@
       gap: 16px;
     }
     .gear-card {
-      background: #090e1c;
+      background: #ffffff;
       border: 1px solid var(--card-border);
       border-radius: 10px;
       padding: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
     .gear-name {
       font-family: 'Chakra Petch', sans-serif;
       font-size: 15px;
       font-weight: 700;
       margin: 8px 0;
-      color: #fff;
+      color: var(--text);
     }
     .gear-row {
       display: flex;
@@ -576,33 +593,34 @@
       padding: 4px 0;
       color: var(--text-muted);
     }
-    .gear-row strong { color: #fff; }
+    .gear-row strong { color: var(--text); }
 
     /* Modals & Overlay */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(4, 7, 17, 0.8);
-      backdrop-filter: blur(6px);
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
       display: none;
       place-items: center;
       z-index: 200;
       padding: 20px;
     }
     .modal-box {
-      background: #0d1424;
+      background: #ffffff;
       border: 1px solid var(--card-border);
       border-radius: 14px;
       width: 100%;
       max-width: 460px;
       padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
     }
     .wallet-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 12px 14px;
-      background: #070b16;
+      background: var(--panel-bg);
       border: 1px solid var(--card-border);
       border-radius: 8px;
       margin-bottom: 8px;
@@ -611,7 +629,7 @@
     }
     .wallet-item:hover {
       border-color: var(--cyan);
-      background: rgba(0, 229, 255, 0.04);
+      background: #f0f9ff;
     }
 
     /* Toast */
@@ -619,14 +637,15 @@
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: #0d1424;
-      border: 1px solid var(--cyan);
+      background: #ffffff;
+      border: 1px solid var(--card-border);
       padding: 12px 20px;
       border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
       z-index: 300;
       display: none;
       font-size: 13px;
+      color: var(--text);
     }
     .empty-state {
       text-align: center;
@@ -639,6 +658,7 @@
       font-size: 12px;
       color: var(--cyan);
       text-decoration: none;
+      font-weight: 500;
     }
     .digest-link:hover { text-decoration: underline; }
 
@@ -781,7 +801,7 @@
           <div id="wallet-dropdown-menu" class="wallet-dropdown">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--card-border-subtle);">
               <div>
-                <div style="font-size:13px; font-weight:700; color:#fff;" id="dropdown-wallet-name">Sui Wallet</div>
+                <div style="font-size:13px; font-weight:700; color:var(--text);" id="dropdown-wallet-name">Sui Wallet</div>
                 <div style="font-size:11px; color:var(--text-dim);" id="dropdown-network-name">Network: Sui Testnet</div>
               </div>
               <span class="badge badge-success" id="dropdown-auth-badge" style="font-size:9px;">SIWS Verified</span>
@@ -789,16 +809,16 @@
 
             <div style="margin-bottom:10px;">
               <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Address</div>
-              <div style="display:flex; justify-content:space-between; align-items:center; background:#070b16; padding:6px 8px; border-radius:6px; border:1px solid var(--card-border);">
+              <div style="display:flex; justify-content:space-between; align-items:center; background:var(--panel-bg); padding:6px 8px; border-radius:6px; border:1px solid var(--card-border);">
                 <span id="dropdown-full-address" style="font-family:'JetBrains Mono'; font-size:11px; color:var(--cyan); word-break:break-all;">0x...</span>
                 <button class="btn btn-outline btn-sm" id="btn-copy-address" style="padding:2px 6px; font-size:10px; margin-left:6px;">Copy</button>
               </div>
             </div>
 
-            <div style="background:#070b16; border-radius:8px; padding:8px 10px; margin-bottom:10px; border:1px solid var(--card-border);">
+            <div style="background:var(--panel-bg); border-radius:8px; padding:8px 10px; margin-bottom:10px; border:1px solid var(--card-border);">
               <div class="wallet-dropdown-row">
                 <span style="color:var(--text-dim);">SUI Gas</span>
-                <strong id="dropdown-sui-balance" style="color:#fff;">0.0000 SUI</strong>
+                <strong id="dropdown-sui-balance" style="color:var(--text);">0.0000 SUI</strong>
               </div>
               <div class="wallet-dropdown-row">
                 <span style="color:var(--text-dim);">RRC Balance</span>
@@ -827,7 +847,7 @@
           <strong>Network Mismatch:</strong> Connected wallet is on <span id="wrong-network-name" style="font-weight:700;">Unknown Network</span>. Robot Rumble requires <strong>Sui Testnet</strong> (<code>sui:testnet</code>).
         </div>
       </div>
-      <button class="btn btn-outline btn-sm" id="btn-switch-network-help" style="border-color:var(--red); color:#fff;">
+      <button class="btn btn-outline btn-sm" id="btn-switch-network-help" style="border-color:var(--red); color:var(--red);">
         Switch to Testnet in Wallet
       </button>
     </div>
@@ -888,22 +908,22 @@
             <span class="badge badge-success">Move Package v3 Deployed</span>
           </div>
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
-            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+            <div style="background:var(--panel-bg); border:1px solid var(--card-border); border-radius:8px; padding:14px;">
               <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Core Move Package</div>
               <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0x54fb4b...de4</div>
               <a class="digest-link" href="https://suiscan.xyz/testnet/object/0x54fb4b210eb3f153f41e1e9b1b898beeea3c209005f0d9874b3b52349ecb8de4" target="_blank">View on Suiscan ↗</a>
             </div>
-            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+            <div style="background:var(--panel-bg); border:1px solid var(--card-border); border-radius:8px; padding:14px;">
               <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Shared Settlement Registry</div>
               <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0xc91538...143a</div>
               <a class="digest-link" href="https://suiscan.xyz/testnet/object/0xc91538b526d4b81de448a0c0f9aad47b13feee364bc225696ecebd0947d9143a" target="_blank">View on Suiscan ↗</a>
             </div>
-            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+            <div style="background:var(--panel-bg); border:1px solid var(--card-border); border-radius:8px; padding:14px;">
               <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Treasury Vault (RRC Pool)</div>
               <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0x4ee9a3...e19b</div>
               <a class="digest-link" href="https://suiscan.xyz/testnet/object/0x4ee9a3d4f19b260f85eb3bf2003c40f5a7a726eaee2246c05a06ce066928e19b" target="_blank">View on Suiscan ↗</a>
             </div>
-            <div style="background:#090e1c; border:1px solid var(--card-border); border-radius:8px; padding:14px;">
+            <div style="background:var(--panel-bg); border:1px solid var(--card-border); border-radius:8px; padding:14px;">
               <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase; margin-bottom:4px;">Governed Parameters Config</div>
               <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--cyan); margin-bottom:8px;">0x42fcf5...7664</div>
               <a class="digest-link" href="https://suiscan.xyz/testnet/object/0x42fcf55651c68f182c61aa7aa35c91f16548a80d5bfa7bc6fcfa48c26c367664" target="_blank">View on Suiscan ↗</a>
@@ -1040,7 +1060,7 @@
             </div>
 
             <!-- Right Side: Telemetry -->
-            <div style="background:#080d1a; border:1px solid var(--card-border); border-radius:8px; padding:16px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div style="background:var(--panel-bg); border:1px solid var(--card-border); border-radius:8px; padding:16px; display:flex; flex-direction:column; justify-content:space-between;">
               <div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                   <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-dim);">Live Telemetry</span>
@@ -1048,10 +1068,10 @@
                 </div>
                 <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
                   <div>Match ID: <strong id="harness-live-match-id" style="color:var(--cyan);">-</strong></div>
-                  <div>Score: <strong id="harness-live-score" style="color:#fff;">0 pts</strong> &bull; Events: <strong id="harness-live-event-count">0</strong></div>
+                  <div>Score: <strong id="harness-live-score" style="color:var(--text);">0 pts</strong> &bull; Events: <strong id="harness-live-event-count">0</strong></div>
                 </div>
                 <div style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">Event Stream:</div>
-                <div id="harness-event-log" style="height:110px; overflow-y:auto; background:#040711; border:1px solid var(--card-border); border-radius:6px; padding:8px; font-family:'JetBrains Mono', monospace; font-size:11px; color:#cbd5e1;">
+                <div id="harness-event-log" style="height:110px; overflow-y:auto; background:#ffffff; border:1px solid var(--card-border); border-radius:6px; padding:8px; font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text);">
                   <em>No events recorded yet. Click combat action buttons to stream events.</em>
                 </div>
               </div>
@@ -1293,19 +1313,19 @@
               <div id="acc-profile-badge" class="badge badge-warning">Checking...</div>
             </div>
             <div id="acc-profile-details" style="display:none; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:14px;">
-              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+              <div style="background:var(--panel-bg); padding:10px; border-radius:6px; border:1px solid var(--card-border);">
                 <div style="font-size:10px; color:var(--text-dim);">LEVEL</div>
                 <div id="acc-prof-level" style="font-size:18px; font-weight:700; color:var(--cyan);">1</div>
               </div>
-              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+              <div style="background:var(--panel-bg); padding:10px; border-radius:6px; border:1px solid var(--card-border);">
                 <div style="font-size:10px; color:var(--text-dim);">EXPERIENCE</div>
-                <div id="acc-prof-xp" style="font-size:18px; font-weight:700; color:#fff;">0 XP</div>
+                <div id="acc-prof-xp" style="font-size:18px; font-weight:700; color:var(--text);">0 XP</div>
               </div>
-              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+              <div style="background:var(--panel-bg); padding:10px; border-radius:6px; border:1px solid var(--card-border);">
                 <div style="font-size:10px; color:var(--text-dim);">VICTORIES</div>
                 <div id="acc-prof-wins" style="font-size:18px; font-weight:700; color:var(--green);">0</div>
               </div>
-              <div style="background:#090e1c; padding:10px; border-radius:6px; border:1px solid var(--card-border);">
+              <div style="background:var(--panel-bg); padding:10px; border-radius:6px; border:1px solid var(--card-border);">
                 <div style="font-size:10px; color:var(--text-dim);">DEFEATS</div>
                 <div id="acc-prof-losses" style="font-size:18px; font-weight:700; color:var(--red);">0</div>
               </div>
@@ -1509,7 +1529,7 @@
   <div id="modal-wallet-connect" class="modal-overlay">
     <div class="modal-box">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <div style="font-family:'Chakra Petch'; font-size:16px; font-weight:700; text-transform:uppercase; color:#fff;">
+        <div style="font-family:'Chakra Petch'; font-size:16px; font-weight:700; text-transform:uppercase; color:var(--text);">
           Connect Sui Wallet
         </div>
         <button id="btn-close-wallet-modal" style="background:transparent; border:0; color:var(--text-dim); font-size:20px; cursor:pointer;">&times;</button>
@@ -1529,7 +1549,7 @@
         </div>
         <div class="wallet-item" id="wallet-item-dev-pilot">
           <div>
-            <div style="font-family:'Chakra Petch'; font-weight:700; font-size:13px; color:#fff;">Testnet Pilot Keypair</div>
+            <div style="font-family:'Chakra Petch'; font-weight:700; font-size:13px; color:var(--text);">Testnet Pilot Keypair</div>
             <div style="font-size:11px; color:var(--cyan);">0xaf41...99f8 (Pre-funded)</div>
           </div>
           <span class="badge badge-purple" style="font-size:9px;">Active Pilot</span>
@@ -1773,7 +1793,7 @@
       if (!modalDetectedList) return;
       if (registeredWallets.length === 0) {
         modalDetectedList.innerHTML = `
-          <div style="background:#070b16; border:1px solid var(--card-border); border-radius:8px; padding:12px; text-align:center; font-size:11px; color:var(--text-dim);">
+          <div style="background:var(--panel-bg); border:1px solid var(--card-border); border-radius:8px; padding:12px; text-align:center; font-size:11px; color:var(--text-dim);">
             No browser extension wallets detected.<br/>Use <strong>Testnet Pilot Keypair</strong> below for standalone testing.
           </div>
         `;
@@ -1788,7 +1808,7 @@
           <div style="display:flex; align-items:center; gap:10px;">
             <div style="font-size:18px;">${w.icon && typeof w.icon === 'string' && w.icon.startsWith('http') ? `<img src="${w.icon}" width="20" height="20" style="border-radius:4px;" />` : (w.icon || '💼')}</div>
             <div>
-              <div style="font-family:'Chakra Petch'; font-weight:700; color:#fff; font-size:13px;">${w.name}</div>
+              <div style="font-family:'Chakra Petch'; font-weight:700; color:var(--text); font-size:13px;">${w.name}</div>
               <div style="font-size:10px; color:var(--green);">Standard Compatible</div>
             </div>
           </div>
@@ -2130,7 +2150,7 @@
         container.innerHTML = '';
         propsRes.proposals.forEach(p => {
           const card = document.createElement('div');
-          card.style.cssText = 'background:#090e1c; border:1px solid var(--card-border); border-radius:10px; padding:16px; margin-bottom:12px;';
+          card.style.cssText = 'background:#ffffff; border:1px solid var(--card-border); border-radius:10px; padding:16px; margin-bottom:12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);';
 
           const forPct = p.approvalPercent || 0;
           const quorumRatio = Math.min(100, ((p.totalParticipatingVotes / p.requiredQuorum) * 100).toFixed(1));
@@ -2139,9 +2159,9 @@
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
               <div>
                 <span class="badge badge-purple">Proposal #${p.index}</span>
-                <div style="font-family:'Chakra Petch'; font-size:15px; font-weight:700; color:#fff; margin-top:4px;">${p.title}</div>
+                <div style="font-family:'Chakra Petch'; font-size:15px; font-weight:700; color:var(--text); margin-top:4px;">${p.title}</div>
                 <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">
-                  Parameter: <strong style="color:var(--cyan);">${p.paramName}</strong> &bull; Target Value: <strong style="color:#fff;">${p.targetValue}</strong>
+                  Parameter: <strong style="color:var(--cyan);">${p.paramName}</strong> &bull; Target Value: <strong style="color:var(--text);">${p.targetValue}</strong>
                 </div>
               </div>
               <div class="badge ${p.state === 3 ? 'badge-success' : p.state === 1 ? 'badge-warning' : 'badge-purple'}">
@@ -2150,7 +2170,7 @@
             </div>
             <p style="font-size:12px; color:var(--text-muted); margin: 8px 0;">${p.description}</p>
 
-            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin: 10px 0; background:rgba(0,0,0,0.25); padding:10px; border-radius:6px; font-size:12px;">
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin: 10px 0; background:var(--panel-bg); border:1px solid var(--card-border); padding:10px; border-radius:6px; font-size:12px;">
               <div><span style="color:var(--text-dim);">FOR:</span> <strong style="color:var(--green);">${p.forVotes}</strong></div>
               <div><span style="color:var(--text-dim);">AGAINST:</span> <strong style="color:var(--red);">${p.againstVotes}</strong></div>
               <div><span style="color:var(--text-dim);">ABSTAIN:</span> <strong style="color:var(--text-muted);">${p.abstainVotes}</strong></div>
@@ -2163,12 +2183,12 @@
                   ${p.quorumReached ? '✓ Quorum Reached' : `${quorumRatio}%`}
                 </span>
               </div>
-              <div style="background:#1e293b; border-radius:999px; height:6px; overflow:hidden;">
+              <div style="background:#e2e8f0; border-radius:999px; height:6px; overflow:hidden;">
                 <div style="height:100%; width:${quorumRatio}%; background:linear-gradient(90deg, var(--cyan), var(--purple));"></div>
               </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; pt-2; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; border-top:1px solid var(--card-border-subtle); padding-top:10px;">
               <a class="digest-link" href="${p.url}" target="_blank">Suiscan ↗</a>
               <div style="display:flex; gap:6px;">
                 ${p.isVotingOpen ? `
