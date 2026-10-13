@@ -2061,7 +2061,7 @@
         }
 
         verifyNetwork(wallet, account);
-        await performSiwsAuth(wallet, account);
+        // SIWS authentication is optional and shouldn't block connection or conflict with transaction prompts
 
         closeWalletModal();
         updateWalletHeaderUI();
